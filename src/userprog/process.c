@@ -1,4 +1,4 @@
-
+#include "userprog/process.h"
 #include <inttypes.h>
 #include <round.h>
 #include <stdio.h>
@@ -16,6 +16,7 @@
 #include "threads/palloc.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -31,74 +32,49 @@ process_execute (const char *file_name)
   char *fn_copy;
   tid_t tid;
 
-
-/* Make a copy of FILE_NAME.
+  /* Make a copy of FILE_NAME.
      Otherwise there's a race between the caller and load(). */
   fn_copy = palloc_get_page (0);
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
-  /*string parsing before a first blank*/
-  
-  char *save_ptr;
-  char *parse_name;
-  parse_name = palloc_get_page (0);
-  if(parse_name == NULL)
-    return TID_ERROR;
-  strlcpy (parse_name, file_name, PGSIZE);
-  strtok_r(parse_name, " ", &save_ptr);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (parse_name, PRI_DEFAULT, start_process, fn_copy); //file_name스레드 변경
-  palloc_free_page(parse_name);
+  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
 }
 
-
 /* A thread function that loads a user process and starts it
    running. */
-static void start_process (void *file_name_)
+static void
+start_process (void *file_name_)
 {
   char *file_name = file_name_;
+  //char *f_name_cp;//원본 문자열 변경 방지
+  char *token,*save_ptr;
+  int count = 0;
+  //char **parse;
+  char *parse[256];
   struct intr_frame if_;
   bool success;
 
-/*인자들을 띄어쓰기 기준으로 토큰화 및 토큰의 개수 계산* */
- // char *token, *save_ptr;	
-//  int count = 0;
-  /*fime_name 문자열 파싱*/
- 
-  char *token, *save_ptr;
-  int count =0;
-  char *parse[25];// 동적할당 하든지말든지~
-
-//  char *parse_name;
-//  parse_name = palloc_get_page (0);
-  //if(parse_name == NULL)
-    //return TID_ERROR;
- // strlcpy (parse_name, file_name, PGSIZE);
-
-  for(token = strtok_r(file_name, " ", &save_ptr) ; token !=NULL; token = strtok_r(NULL," ", &save_ptr))
-  {	
- 	parse[count++]=token;
+  for(token = strtok_r(file_name," ",&save_ptr); token!=NULL; token = strtok_r(NULL," ", &save_ptr)){
+	  parse[count] = (char *)malloc((strlen(token)+1)*sizeof(char));
+	  strlcpy(parse[count],token,strlen(token)+1);
+	  count++;
   }
-
+	  
 
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-  success = load(file_name, &if_.eip, &if_.esp); //파일이름 인자 뭐넣지?
 
-  argument_stack(parse, count, &if_.esp);
-  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp,true);
-
-
-  /* If load failed, quit. */
+  success = load (parse[0], &if_.eip, &if_.esp);
   palloc_free_page (file_name);
   if (!success) 
     thread_exit ();
@@ -109,57 +85,47 @@ static void start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
+    argument_stack(parse,count, &if_.esp);
+    hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
 
-	
+  /* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
 }
 
-
 void argument_stack(char *argv[], int count, void **esp)
 {
-  int i, len=0;
-  void *argv_addr[count];
-//  *esp -=1;
-  int total_len =0;
-
-  for(i= count-1 ; i>=0 ; i--)
-  {
-	//  *(int*)(*esp) = '\0';
-	  len= strlen(argv[i]);
-	  *esp -=len +1;
-	  total_len +=len+1;
-	  memcpy(*esp, argv[i],len+1);
-	  argv_addr[i] =*esp;
-	 // *(int*)(*esp) = '\0'; 
+	int i, len=0;
+	int total_len =0;
+	
+	for(i= count-1 ; i>=0 ; i--)
+	{
+		len= strlen(argv[i]);
+		*esp -= len +1;
+		total_len += len + 1;
+		strlcpy(*esp, argv[i],len+1);
+		argv[i] =*esp;
+	}
+	//word-align - 0 input
+	*esp -= total_len %4 !=0 ? 4-(total_len%4):0;
+	//push NULL
+	*esp -=4;
+	*(int*)(*esp) =0;
+	for(i=count-1; i>=0;i--)
+	{
+		*esp -=4;
+		*(void**)(*esp) = argv[i];
+	}
+	void *esp_backup = *esp;
+	*esp -=4;
+	*(int*)(*esp) = esp_backup; //argv's address
+	*esp -=4;
+	*(int*)(*esp) = count; // argv's num
+	//save retrun address
+	*esp -=4;
+	*(int*)(*esp)=0; //fake return address	
 }
-//word-align
- *esp -= total_len %4 !=0 ? 4-(total_len%4):0;
 
- //push NULL
-*esp -=4;
-*(int*)(*esp) =0;
-
-for(i=count-1; i>=0;i--)
-{
-*esp -=4;
-*(void**)(*esp) = argv_addr[i];
-}
-
-
-void *esp_backup = *esp;
-*esp -=4;
-*(int*)(*esp) = esp_backup;
-
-
-*esp -=4;
-*(int*)(*esp) = count;
-
-//save retrun address
-*esp -=4;
-*(int*)(*esp)=0;
-
-}
 /* Waits for thread TID to die and returns its exit status.  If
    it was terminated by the kernel (i.e. killed due to an
    exception), returns -1.  If TID is invalid or if it was not a
@@ -172,7 +138,7 @@ void *esp_backup = *esp;
 int
 process_wait (tid_t child_tid UNUSED) 
 {
-  return -1;
+ return -1;
 }
 
 /* Free the current process's resources. */
@@ -215,7 +181,7 @@ process_activate (void)
      interrupts. */
   tss_update ();
 }
-
+
 /* We load ELF binaries.  The following definitions are taken
    from the ELF specification, [ELF1], more-or-less verbatim.  */
 
@@ -305,6 +271,9 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+  //프로그램 명 잘라내기
+  char *save_ptr;
+  strtok_r (file_name," ",&save_ptr);
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
@@ -399,7 +368,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
   file_close (file);
   return success;
 }
-
+
 /* load() helpers. */
 
 static bool install_page (void *upage, void *kpage, bool writable);

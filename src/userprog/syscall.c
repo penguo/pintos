@@ -14,6 +14,7 @@ void exit(int status);
 bool create(const char* file, unsigned inital_size);
 bool remove(const char* file);
 
+
 void
 syscall_init (void) 
 {
@@ -21,71 +22,91 @@ syscall_init (void)
 }
 
 void halt(void){
-  shutdown_power_off();
+	printf("\nhalt!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("%s\n", thread_name());
+	shutdown_power_off();
 }
 
 void exit(int status){
-  printf("%s: exit(%d)\n", thread_name(), status);
-  thread_exit();
+	printf("\nexit!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("%s: exit(%d)\n", thread_name(), status);
+	thread_exit();
 }
 
 bool create(const char* file, unsigned initial_size){
-  return filesys_create(file, initial_size);
+	printf("\ncreate!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("%s: create(%s)\n", thread_name(), file);
+	return filesys_create(file, initial_size);
 }
 
 bool remove(const char* file){
-  return filesys_remove(file);
+	printf("\nremove!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("%s: remove(%s)\n", thread_name(), file);
+	return filesys_remove(file);
 }
 
-void get_argument(void *esp, int *arg, int count)
+syscall_handler (struct intr_frame *f) 
 {
-  /* 유저 스택에 저장된 인자값들을 커널에 복사 */
-  int i;
-  esp += 4;
-
-  /* 인자가 저장된 위치가 유저영역인지 확인한다 */
-  check_address(esp);
-  check_address(esp+(count*4));
-
-  for (i = 0; i<count; i++){
-    esp += i*4;
-    arg[i] = (int)esp; // esp[i];
-  }
+	//printf("System call!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("\nsyscall number : %d\n",*(int *)(f->esp));
+	//system call's argument loading from stack
+	int arg[5];
+	switch(*(int *)(f->esp)){
+case SYS_HALT:
+	printf("it's me???? halt\n");
+	halt();
+	break;
+case SYS_EXIT:
+	printf("it's me???? exit\n");
+	get_argument(f->esp, arg, 1);
+	exit(*(int *)arg[0]);
+	f->eax = arg[0];
+	break;
+case SYS_EXEC:
+	break;
+case SYS_WAIT:
+	break;
+case SYS_CREATE:
+	printf("it's me???? create\n");
+	get_argument(f->esp, arg, 2); //get argument
+	check_address(arg[0]); //check
+	f->eax = create(arg[0],arg[1]); // get return
+	break;
+case SYS_REMOVE:
+	printf("it's me???? remove\n");
+	get_argument(f->esp, arg, 1);
+	check_address(arg[0]); //check
+	f->eax = remove(arg[0]);
+	break;
+case SYS_FILESIZE:
+	break;
+case SYS_READ:
+	break;
+case SYS_WRITE:
+	break;
+case SYS_SEEK:
+	break;
+case SYS_TELL:
+	break;
+case SYS_CLOSE:
+	break;
+default :
+	printf("default\n");
+	}
 }
+void get_argument(void *esp, int *arg, int count){ //esp for stack pointer, count is number of argument
+	esp += 4; //syscall number
+	int i;
 
-void check_address(void *addr)
-{
-  // TODO 맞는지 확인해보자
-  if(!((void *)0x0008048 < addr && addr < (void *)0xc000000)){
-    thread_exit();
-  }
+	check_address(esp);
+	check_address(esp+(count*4)); //address checking for security
+	for (i=0; i<count; i++){
+		arg[i] = (int)(esp+i*4);//esp[i]
+	}
 }
-
-static void
-syscall_handler (struct intr_frame *f UNUSED) 
-{
-// TODO
-  int syscall_nr = (int)f->esp;
-  int arg[5]; // 사이즈는 마음대로, 상수값이니 define 하는게 더 좋을듯.*
-  switch (syscall_nr){
-    case SYS_HALT:
-      halt();
-      break;
-    case SYS_EXIT:
-      get_argument(f->esp, arg, 1);
-      exit(arg[0]);
-      f->eax = arg[0];
-      break;
-    case SYS_CREATE:
-      get_argument(f->esp, arg, 2);
-      check_address((void*)arg[0]);
-      f->eax = create((const char*)arg[0], (unsigned)arg[1]);
-      break;
-    case SYS_REMOVE:
-      get_argument(f->esp, arg, 1);
-      check_address((void*)arg[0]);
-      f->eax = remove((const char*)arg[0]);
-      break;
-  }
-  thread_exit ();
+void check_address(void *addr){ //check address is user's address
+	//user address : 0x8048000~0xc0000000
+	if(!(0x80480000 < addr && addr < 0xc0000000))
+		thread_exit();
+	
 }
