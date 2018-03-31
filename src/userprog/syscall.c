@@ -22,25 +22,25 @@ syscall_init (void)
 }
 
 void halt(void){
-	printf("\nhalt!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("\nhalt!!!\n");
 	printf("%s\n", thread_name());
 	shutdown_power_off();
 }
 
 void exit(int status){
-	printf("\nexit!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("\nexit!!!\n");
 	printf("%s: exit(%d)\n", thread_name(), status);
 	thread_exit();
 }
 
 bool create(const char* file, unsigned initial_size){
-	printf("\ncreate!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("\ncreate!!!\n");
 	printf("%s: create(%s)\n", thread_name(), file);
 	return filesys_create(file, initial_size);
 }
 
 bool remove(const char* file){
-	printf("\nremove!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+	printf("\nremove!!!\n");
 	printf("%s: remove(%s)\n", thread_name(), file);
 	return filesys_remove(file);
 }
@@ -108,5 +108,4 @@ void check_address(void *addr){ //check address is user's address
 	//user address : 0x8048000~0xc0000000
 	if(!(0x80480000 < addr && addr < 0xc0000000))
 		thread_exit();
-	
 }
