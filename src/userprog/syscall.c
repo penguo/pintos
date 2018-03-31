@@ -14,7 +14,6 @@ void exit(int status);
 bool create(const char* file, unsigned inital_size);
 bool remove(const char* file);
 
-
 void
 syscall_init (void) 
 {
@@ -45,20 +44,24 @@ bool remove(const char* file){
 	return filesys_remove(file);
 }
 
+static void
 syscall_handler (struct intr_frame *f) 
 {
-	//printf("System call!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 	printf("\nsyscall number : %d\n",*(int *)(f->esp));
 	//system call's argument loading from stack
-	int arg[5];
-	switch(*(int *)(f->esp)){
+	int* h_esp = f->esp;
+	int syscall_num = *h_esp;	
+	int arg[5];	
+	//check_address(
+
+switch(syscall_num){
 case SYS_HALT:
 	printf("it's me???? halt\n");
 	halt();
 	break;
 case SYS_EXIT:
 	printf("it's me???? exit\n");
-	get_argument(f->esp, arg, 1);
+	get_argument(h_esp, arg, 1);
 	exit(*(int *)arg[0]);
 	f->eax = arg[0];
 	break;
@@ -68,15 +71,15 @@ case SYS_WAIT:
 	break;
 case SYS_CREATE:
 	printf("it's me???? create\n");
-	get_argument(f->esp, arg, 2); //get argument
-	check_address(arg[0]); //check
-	f->eax = create(arg[0],arg[1]); // get return
+	get_argument(h_esp, arg, 2); //get argument
+	check_address((void *)arg[0]); //check
+	f->eax = create((const char *)arg[0], arg[1]); // get return
 	break;
 case SYS_REMOVE:
 	printf("it's me???? remove\n");
-	get_argument(f->esp, arg, 1);
-	check_address(arg[0]); //check
-	f->eax = remove(arg[0]);
+	get_argument(h_esp, arg, 1);
+	check_address((void *)arg[0]); //check
+	f->eax = remove((const char *)arg[0]);
 	break;
 case SYS_FILESIZE:
 	break;
@@ -106,6 +109,6 @@ void get_argument(void *esp, int *arg, int count){ //esp for stack pointer, coun
 }
 void check_address(void *addr){ //check address is user's address
 	//user address : 0x8048000~0xc0000000
-	if(!(0x80480000 < addr && addr < 0xc0000000))
+	if(!((void *)0x80480000 < addr && addr < (void *)0xc0000000))
 		thread_exit();
 }
