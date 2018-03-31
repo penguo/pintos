@@ -109,6 +109,6 @@ void get_argument(void *esp, int *arg, int count){ //esp for stack pointer, coun
 }
 void check_address(void *addr){ //check address is user's address
 	//user address : 0x8048000~0xc0000000
-	if(!((void *)0x80480000 < addr && addr < (void *)0xc0000000))
+	if(!((void *)0x8048000 < addr && addr < (void *)0xc0000000))
 		thread_exit();
 }
