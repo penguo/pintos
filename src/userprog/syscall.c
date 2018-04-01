@@ -34,7 +34,7 @@ void exit(int status){
 
 bool create(const char* file, unsigned initial_size){
 	printf("\ncreate!!!\n");
-	printf("%s: create(%s)\n", thread_name(), file);
+	printf("%s: create(%s)\n", thread_name(), &file);
 	return filesys_create(file, initial_size);
 }
 
@@ -49,7 +49,7 @@ syscall_handler (struct intr_frame *f)
 {
 	printf("\nsyscall number : %d\n",*(int *)(f->esp));
 	//system call's argument loading from stack
-	int* h_esp = f->esp;
+	int *h_esp = f->esp;
 	int syscall_num = *h_esp;	
 	int arg[5];	
 	//check_address(
@@ -62,7 +62,7 @@ case SYS_HALT:
 case SYS_EXIT:
 	printf("it's me???? exit\n");
 	get_argument(h_esp, arg, 1);
-	exit(*(int *)arg[0]);
+	exit(arg[0]);
 	f->eax = arg[0];
 	break;
 case SYS_EXEC:
@@ -97,18 +97,27 @@ default :
 	printf("default\n");
 	}
 }
-void get_argument(void *esp, int *arg, int count){ //esp for stack pointer, count is number of argument
-	esp += 4; //syscall number
-	int i;
 
+void get_argument(void *esp, int *arg, int count){ //esp for stack pointer, count is number of argument
+	int i;
+	
+	int *ptr;
+	esp += 4;
+	
 	check_address(esp);
-	check_address(esp+(count*4)); //address checking for security
+	check_address(esp + ((count-1)*4)); //address checking for security
+	
 	for (i=0; i<count; i++){
-		arg[i] = (int)(esp+i*4);//esp[i]
+		ptr = (int *)esp + i;
+		arg[i] = *ptr;
+
+//		printf("arg[%d] is %d\n", i, arg[i]);
 	}
 }
+
 void check_address(void *addr){ //check address is user's address
 	//user address : 0x8048000~0xc0000000
-	if(!((void *)0x80480000 < addr && addr < (void *)0xc0000000))
-		thread_exit();
+	if(!((void *)0x08048000 < addr && addr < (void *)0xc0000000))
+		//thread_exit();
+		exit(-1);
 }
