@@ -34,7 +34,7 @@ void exit(int status){
 
 bool create(const char* file, unsigned initial_size){
 	printf("\ncreate!!!\n");
-	printf("%s: create(%s)\n", thread_name(), &file);
+	printf("%s: create(%s)\n", thread_name(), file);
 	return filesys_create(file, initial_size);
 }
 
