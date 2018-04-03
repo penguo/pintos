@@ -61,7 +61,7 @@ case SYS_HALT:
 case SYS_EXIT:
 //	printf("it's me???? exit\n");
 	get_argument(h_esp, arg, 1);
-	exit(arg[0]);
+	exit((int)arg[0]);
 	f->eax = arg[0];
 	break;
 case SYS_EXEC:
