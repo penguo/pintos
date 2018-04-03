@@ -153,7 +153,7 @@ struct thread* get_child_process (int pid) {
 			return t;
 	}
 
-
+	return NULL;
 }
 
 void
@@ -166,9 +166,14 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
 	struct thread *child = get_child_process(child_tid);
+	
+	if(child == NULL)
+			return -1;
+	
 	sema_down(&child->exit_sema); //exit_sema 대기  process_exit 함수에 sema_up 해줌
 
 	remove_child_process(child); //리스트에서 제거 + 할당 해제
+
 	return child->exit_status; // exit_code 반환
 }
 
@@ -178,8 +183,9 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-  sema_up(&thread_current()->exit_sema);
-  remove_child_process(child);
+  
+	sema_up(&cur->exit_sema); //exit_status에 처리 필요
+//	remove_child_process(child);
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
