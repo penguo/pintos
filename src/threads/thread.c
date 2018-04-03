@@ -206,6 +206,21 @@ thread_create (const char *name, int priority,
 
   intr_set_level (old_level);
 
+
+	//수정한부분
+	t->parent = thread_current();
+	t->loaded =false;
+	t->exited =false;
+	sema_init(&t->exit_sema,0);
+	sema_init(&t->load_sema,0);
+	list_init(t->child_elem);
+	list_push_back(&t->parent->child_list, &t->child_elem);
+
+
+
+
+
+
   /* Add to run queue. */
   thread_unblock (t);
 
@@ -472,9 +487,6 @@ init_thread (struct thread *t, const char *name, int priority)
   list_push_back (&all_list, &t->allelem);
 
   list_init(t->child_elem);//자식 리스트 초기화 작업
-  list_push_back(thread_current()->child_list, t->child_elem); // 현재 스레드는 부모 스레드 부모 스레드의 list_elem에 자식 리스트를 저장
-  sema_init(t->exit_sema);//exit 세마포어의 초기화
-  sema_init(t->load_sema);//load 세마포어의 초기화
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

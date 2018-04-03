@@ -43,12 +43,14 @@ bool remove(const char* file){
 	printf("%s: remove(%s)\n", thread_name(), file);
 	return filesys_remove(file);
 }
+
+
 tid_t exec(const char *cmd_line){
 	struct thread *child;
-	int pid;
+	tid_t pid;
 	pid = process_execute(cmd_line); // 프로세스 생성
-	child = get_child_process(pid)//자식 프로세스의 디스크립터 검색
-		sema_down(child->load_sema);//자식 프로세스가 탑재될 때 까지 대기
+	child = get_child_process(pid);//자식 프로세스의 디스크립터 검색
+	sema_down(&child->load_sema);//자식 프로세스가 탑재될 때 까지 대기
 	if(child->loaded) // 실행이 잘 되었으면
 		return pid; //pid 반환
 	else

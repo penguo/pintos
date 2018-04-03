@@ -75,10 +75,14 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
 
   success = load (parse[0], &if_.eip, &if_.esp);
-  palloc_free_page (file_name);
-  if (!success) 
-    thread_exit ();
 
+
+	palloc_free_page(file_name);
+
+	 if (!success) 
+	{ 			
+		thread_exit ();
+	}
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
@@ -87,8 +91,9 @@ start_process (void *file_name_)
      and jump to it. */
     argument_stack(parse,count, &if_.esp);
     hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
-	thread_current()->loaded = success;//현 thread의 성공여부
-	sema_up(thread_current->load_sema);//semaphore 대기해제
+
+		thread_current()->loaded = success;//현 thread의 성공여부
+	sema_up(&thread_current->load_sema);//semaphore 대기해제
   /* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
@@ -150,6 +155,8 @@ struct thread* get_child_process (int pid) {
 
 
 }
+
+void
 remove_child_process (struct thread *cp){ // 제거용 함수
 	list_remove(cp->parent->child_list, cp->childe_elem);// 자식 리스트에서 제거
 	palloc_free_page(cp); //메모리 해제
@@ -159,9 +166,10 @@ int
 process_wait (tid_t child_tid UNUSED) 
 {
 	struct thread *child = get_child_process(child_tid);
-	sema_down(child->exit_sema); //exit_sema 대기  process_exit 함수에 sema_up 해줌
+	sema_down(&child->exit_sema); //exit_sema 대기  process_exit 함수에 sema_up 해줌
+
 	remove_child_process(child); //리스트에서 제거 + 할당 해제
-	retrun child->exit_status; // exit_code 반환
+	return child->exit_status; // exit_code 반환
 }
 
 /* Free the current process's resources. */
