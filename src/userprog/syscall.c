@@ -34,7 +34,7 @@ void exit(int status){
 
 bool create(const char* file, unsigned initial_size){
 	printf("\ncreate!!!\n");
-	printf("%s: create(%s)\n", thread_name(), &file);
+	printf("%s: create(%s)\n", thread_name(), file);
 	return filesys_create(file, initial_size);
 }
 
@@ -42,6 +42,21 @@ bool remove(const char* file){
 	printf("\nremove!!!\n");
 	printf("%s: remove(%s)\n", thread_name(), file);
 	return filesys_remove(file);
+}
+tid_t exec(const char *cmd_line){
+	struct thread *child;
+	int pid;
+	pid = process_execute(cmd_line); // 프로세스 생성
+	child = get_child_process(pid)//자식 프로세스의 디스크립터 검색
+		sema_down(child->load_sema);//자식 프로세스가 탑재될 때 까지 대기
+	if(child->loaded) // 실행이 잘 되었으면
+		return pid; //pid 반환
+	else
+		return -1; // 실패
+}
+int wait(int pid)
+{
+		return process_wait(pid);
 }
 
 static void
@@ -55,27 +70,29 @@ syscall_handler (struct intr_frame *f)
 
 switch(syscall_num){
 case SYS_HALT:
-//	printf("it's me???? halt\n");
 	halt();
 	break;
 case SYS_EXIT:
-//	printf("it's me???? exit\n");
 	get_argument(h_esp, arg, 1);
 	exit((int)arg[0]);
 	f->eax = arg[0];
 	break;
 case SYS_EXEC:
+	get_argument(h_esp, arg, 1);
+	check_address((void *)arg[0]); //check
+	f->eax = exec((const char *)arg[0]);//return tid_t
 	break;
 case SYS_WAIT:
+	get_argument(h_esp,arg,1);
+	check_address((void *)arg[0]); //check
+	f->eax = process_wait((int)arg[0]);//return int
 	break;
 case SYS_CREATE:
-//	printf("it's me???? create\n");
 	get_argument(h_esp, arg, 2); //get argument
 	check_address((void *)arg[0]); //check
 	f->eax = create((const char *)arg[0], arg[1]); // get return
 	break;
 case SYS_REMOVE:
-//	printf("it's me???? remove\n");
 	get_argument(h_esp, arg, 1);
 	check_address((void *)arg[0]); //check
 	f->eax = remove((const char *)arg[0]);

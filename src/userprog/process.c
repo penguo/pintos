@@ -87,7 +87,8 @@ start_process (void *file_name_)
      and jump to it. */
     argument_stack(parse,count, &if_.esp);
     hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
-
+	thread_current()->loaded = success;//현 thread의 성공여부
+	sema_up(thread_current->load_sema);//semaphore 대기해제
   /* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
@@ -135,10 +136,32 @@ void argument_stack(char *argv[], int count, void **esp)
 
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
+
+
+struct thread* get_child_process (int pid) {
+	struct thread *cur = thread_current(); //현재 스레드
+	struct list_elem *c_elem = cur->child_list.head.next;//여기서 시작
+
+	for(; c_elem != list_end(&cur->child_list) ; c_elem = list_next(c_elem) ){
+		struct thread *t = list_entry(c_elem, struct thread, elem);
+		if(t->tid == pid)
+			return t;
+	}
+
+
+}
+remove_child_process (struct thread *cp){ // 제거용 함수
+	list_remove(cp->parent->child_list, cp->childe_elem);// 자식 리스트에서 제거
+	palloc_free_page(cp); //메모리 해제
+}
+
 int
 process_wait (tid_t child_tid UNUSED) 
 {
- return -1;
+	struct thread *child = get_child_process(child_tid);
+	sema_down(child->exit_sema); //exit_sema 대기  process_exit 함수에 sema_up 해줌
+	remove_child_process(child); //리스트에서 제거 + 할당 해제
+	retrun child->exit_status; // exit_code 반환
 }
 
 /* Free the current process's resources. */
@@ -147,7 +170,8 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-
+  sema_up(&thread_current()->exit_sema);
+  remove_child_process(child);
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
