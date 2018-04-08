@@ -93,7 +93,7 @@ start_process (void *file_name_)
     hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
 
 		thread_current()->loaded = success;//현 thread의 성공여부
-	sema_up(&thread_current->load_sema);//semaphore 대기해제
+	sema_up(&thread_current()->load_sema);//semaphore 대기해제
   /* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
@@ -158,7 +158,7 @@ struct thread* get_child_process (int pid) {
 
 void
 remove_child_process (struct thread *cp){ // 제거용 함수
-	list_remove(cp->parent->child_list, cp->childe_elem);// 자식 리스트에서 제거
+	list_remove(cp->child_elem);// 자식 리스트에서 제거 <<수정 : list_remove는 인자를 list_elem * 하나만 받으므로
 	palloc_free_page(cp); //메모리 해제
 }
 
