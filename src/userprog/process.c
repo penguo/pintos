@@ -21,7 +21,7 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack(char *argv[], int count, void **esp); 
-
+struct thread *get_child_process(int pid);
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -76,12 +76,23 @@ start_process (void *file_name_)
 
   success = load (parse[0], &if_.eip, &if_.esp);
 
+	if(success)
+	{
+		//프로세스 디스크립터에 메모리 탑재 완료 flag 
+		thread_current()->loaded = true;
+		
+		//부모프로세스 다시 진행
+		sema_up(&thread_current()->load_sema);
+	}
 
 	palloc_free_page(file_name);
 
-	 if (!success) 
+	if (!success) 
 	{ 			
+		//프로세스 디스크립터에 메모리 탑재 실패 flag
+		thread_current()->loaded = false;			
 		thread_exit ();
+
 	}
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -89,17 +100,16 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-    argument_stack(parse,count, &if_.esp);
-    hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
-
-		thread_current()->loaded = success;//현 thread의 성공여부
-	sema_up(&thread_current()->load_sema);//semaphore 대기해제
-  /* If load failed, quit. */
+	argument_stack(parse,count, &if_.esp);
+  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
+  
+	/* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
 }
 
-void argument_stack(char *argv[], int count, void **esp)
+void
+argument_stack(char *argv[], int count, void **esp)
 {
 	int i, len=0;
 	int total_len =0;
@@ -142,39 +152,62 @@ void argument_stack(char *argv[], int count, void **esp)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 
+//자식 리스트 검색, 해당 pid에 일치하는 프로세스 디스크립터 주소 반환 함수
+struct
+thread* get_child_process (int pid) {
 
-struct thread* get_child_process (int pid) {
-	struct thread *cur = thread_current(); //현재 스레드
-	struct list_elem *c_elem = cur->child_list.head.next;//여기서 시작
+	//현재 실행중인 프로세스
+	struct thread *cur = thread_current();
+
+	//리스트 선언 - 프로세스 검색 시작점은 헤더의 다음 리스트
+	struct list_elem *c_elem = cur->child_list.head.next;
 
 	for(; c_elem != list_end(&cur->child_list) ; c_elem = list_next(c_elem) ){
+	
 		struct thread *t = list_entry(c_elem, struct thread, elem);
+		//같은 값을 찾았을 시 해당 프로세스 디스크립터 주소 리턴
 		if(t->tid == pid)
 			return t;
 	}
-
+	//같은 값을 찾지 못했을 때 NULL 리턴  
 	return NULL;
 }
 
+
+//자식 프로세스 디스크립터 삭제 함수
 void
-remove_child_process (struct thread *cp){ // 제거용 함수
-	list_remove(cp->child_elem);// 자식 리스트에서 제거 <<수정 : list_remove는 인자를 list_elem * 하나만 받으므로
-	palloc_free_page(cp); //메모리 해제
+remove_child_process (struct thread *cp){ 
+
+	//자식 리스트에서 제거			
+	list_remove(&cp->child_elem);
+
+	//메모리 해제 
+	palloc_free_page(cp);
 }
 
 int
-process_wait (tid_t child_tid UNUSED) 
+process_wait (tid_t child_tid) 
 {
+		
+	int exit_status;
+
+	//자식 프로세스의 프로세스 디스크립터 검색			
 	struct thread *child = get_child_process(child_tid);
-	
+
+	//리스트에서 찾을수 없을 시 -1 리턴
 	if(child == NULL)
 			return -1;
 	
-	sema_down(&child->exit_sema); //exit_sema 대기  process_exit 함수에 sema_up 해줌
+	//자식프로세스 종료 대기
+	sema_down(&child->exit_sema); 
 
-	remove_child_process(child); //리스트에서 제거 + 할당 해제
+	//자식프로세스 디스크립터 삭제(리스트에서 제거 / 메모리 할당 해제)
+	remove_child_process(child); 
 
-	return child->exit_status; // exit_code 반환
+	exit_status = child->exit_status;
+	
+	//자식프로세스의 exit status리턴
+	return exit_status;
 }
 
 /* Free the current process's resources. */
@@ -184,8 +217,8 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   
-	sema_up(&cur->exit_sema); //exit_status에 처리 필요
-//	remove_child_process(child);
+//	sema_up(&cur->exit_sema); //exit_status에 처리 필요
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;

@@ -102,14 +102,27 @@ struct thread
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
 
-	struct thread *parent; //부모 프로세스의 디스크립터
-	struct list_elem *child_elem; //자식 리스트 element
-	struct list child_list; // 자식 리스트
-	bool loaded; //flag
-	bool exited; //flag
-	struct semaphore exit_sema;//exit 세마포어 - 세마포어? lock의 일종
-	struct semaphore load_sema; //load 세마포어
-	int exit_status; // exit 호출시 종료 status 반환값 - 부모가 wait 호출시 리턴값
+		//부모 프로세스의 디스크립터
+		struct thread *parent; 
+
+		//자식 리스트의 element
+		struct list_elem *child_elem;
+
+		//자식 리스트
+		struct list child_list;
+
+		//프로세스 메모리 탑재 유무 flag
+		bool loaded; 
+		bool exited; 
+
+		//exit 세마포어
+		struct semaphore exit_sema;
+
+		//load 세마포어
+		struct semaphore load_sema;
+
+		//exit 호출시 종료 status 반환값 - 부모가 wait 호출시의 리턴 값
+		int exit_status;
   };
 
 /* If false (default), use round-robin scheduler.

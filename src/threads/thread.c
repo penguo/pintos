@@ -98,6 +98,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -162,6 +163,7 @@ thread_print_stats (void)
    The code provided sets the new thread's `priority' member to
    PRIORITY, but no actual priority scheduling is implemented.
    Priority scheduling is the goal of Problem 1-3. */
+
 tid_t
 thread_create (const char *name, int priority,
                thread_func *function, void *aux) 
@@ -207,19 +209,21 @@ thread_create (const char *name, int priority,
   intr_set_level (old_level);
 
 
-	//수정한부분
+	//부모 프로세스 저장 - 부모프로세스는 현재 실행중인 프로세스
 	t->parent = thread_current();
+
+	//프로그램 로드되지 않음
 	t->loaded =false;
+
+	//프로세스 종료되지 않음
 	t->exited =false;
+
+	//exit, load semaphore 0으로 초기화
 	sema_init(&t->exit_sema,0);
 	sema_init(&t->load_sema,0);
-	list_init(t->child_elem);
+	
+	//생성된 프로세스를 부모프로세스의 자식 리스트에 추가
 	list_push_back(&t->parent->child_list, &t->child_elem);
-
-
-
-
-
 
   /* Add to run queue. */
   thread_unblock (t);
@@ -304,7 +308,7 @@ void
 thread_exit (void) 
 {
   ASSERT (!intr_context ());
-
+	
 #ifdef USERPROG
   process_exit ();
 #endif
@@ -314,7 +318,14 @@ thread_exit (void)
      when it calls thread_schedule_tail(). */
   intr_disable ();
   list_remove (&thread_current()->allelem);
-  thread_current ()->status = THREAD_DYING;
+	
+	//프로세스 디스크립터에 프로세스 종료를 알림
+  thread_current()->exited = true;
+
+	//부모프로세스의 대기 상태 이탈
+	sema_up(&thread_current()->exit_sema);
+	
+	thread_current ()->status = THREAD_DYING;
   schedule ();
   NOT_REACHED ();
 }
@@ -486,7 +497,8 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 
-  list_init(t->child_elem);//자식 리스트 초기화 작업
+ 	//자식 리스트 element 초기화
+	list_init(&t->child_elem);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -558,7 +570,8 @@ thread_schedule_tail (struct thread *prev)
   if (prev != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
     {
       ASSERT (prev != cur);
-      palloc_free_page (prev);
+   		//프로세스 디스크립터 삭제
+			// palloc_free_page (prev);
     }
 }
 
