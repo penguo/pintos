@@ -163,8 +163,8 @@ thread* get_child_process (int pid) {
 	//리스트 선언 - 프로세스 검색 시작점은 헤더의 다음 리스트
 	struct list_elem *c_elem = cur->child_list.head.next;
 
-	for(; c_elem != list_end(&cur->child_list) ; c_elem = list_next(c_elem) ){
-	
+	for(; c_elem != list_end(&cur->child_list) ; c_elem = list_next(c_elem) )
+	{
 		struct thread *t = list_entry(c_elem, struct thread, child_elem);
 		//같은 값을 찾았을 시 해당 프로세스 디스크립터 주소 리턴
 		if(t->tid == pid)
@@ -219,8 +219,6 @@ process_exit (void)
   struct thread *cur = thread_current ();
   uint32_t *pd;
   
-//	sema_up(&cur->exit_sema); //exit_status에 처리 필요
-
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;

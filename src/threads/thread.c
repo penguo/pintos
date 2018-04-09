@@ -223,7 +223,7 @@ thread_create (const char *name, int priority,
 	sema_init(&t->load_sema,0);
 
 	//생성된 프로세스를 부모프로세스의 자식 리스트에 추가
-	list_push_back(&t->parent->child_list, &t->child_elem);
+	list_push_back(&thread_current()->child_list, &t->child_elem);
 
   /* Add to run queue. */
   thread_unblock (t);
