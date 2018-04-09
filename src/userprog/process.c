@@ -22,6 +22,8 @@ static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack(char *argv[], int count, void **esp); 
 struct thread *get_child_process(int pid);
+void remove_child_process (struct thread *cp);
+
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -75,17 +77,16 @@ start_process (void *file_name_)
   if_.eflags = FLAG_IF | FLAG_MBS;
 
   success = load (parse[0], &if_.eip, &if_.esp);
+	palloc_free_page(file_name);
 
 	if(success)
 	{
-		//프로세스 디스크립터에 메모리 탑재 완료 flag 
-		thread_current()->loaded = true;
-		
 		//부모프로세스 다시 진행
 		sema_up(&thread_current()->load_sema);
+	
+		//프로세스 디스크립터에 메모리 탑재 완료 flag 
+		thread_current()->loaded = true;
 	}
-
-	palloc_free_page(file_name);
 
 	if (!success) 
 	{ 			
@@ -100,7 +101,7 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-	argument_stack(parse,count, &if_.esp);
+	argument_stack(parse,count,&if_.esp);
   hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   
 	/* If load failed, quit. */
@@ -164,7 +165,7 @@ thread* get_child_process (int pid) {
 
 	for(; c_elem != list_end(&cur->child_list) ; c_elem = list_next(c_elem) ){
 	
-		struct thread *t = list_entry(c_elem, struct thread, elem);
+		struct thread *t = list_entry(c_elem, struct thread, child_elem);
 		//같은 값을 찾았을 시 해당 프로세스 디스크립터 주소 리턴
 		if(t->tid == pid)
 			return t;
@@ -197,15 +198,16 @@ process_wait (tid_t child_tid)
 	//리스트에서 찾을수 없을 시 -1 리턴
 	if(child == NULL)
 			return -1;
+
 	
 	//자식프로세스 종료 대기
 	sema_down(&child->exit_sema); 
 
-	//자식프로세스 디스크립터 삭제(리스트에서 제거 / 메모리 할당 해제)
-	remove_child_process(child); 
-
 	exit_status = child->exit_status;
 	
+	//자식프로세스 디스크립터 삭제(리스트에서 제거 / 메모리 할당 해제)
+	remove_child_process(child);
+
 	//자식프로세스의 exit status리턴
 	return exit_status;
 }
@@ -344,7 +346,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
   //프로그램 명 잘라내기
   char *save_ptr;
-  strtok_r (file_name," ",&save_ptr);
+  strtok_r(file_name," ", &save_ptr);
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
@@ -362,7 +364,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
       || ehdr.e_phentsize != sizeof (struct Elf32_Phdr)
       || ehdr.e_phnum > 1024) 
     {
-      printf ("load: %s: error loading executable\n", file_name);
+printf ("load: %s: error loading executable\n", file_name);
       goto done; 
     }
 

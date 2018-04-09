@@ -106,7 +106,7 @@ struct thread
 		struct thread *parent; 
 
 		//자식 리스트의 element
-		struct list_elem *child_elem;
+		struct list_elem child_elem;
 
 		//자식 리스트
 		struct list child_list;

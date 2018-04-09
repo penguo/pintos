@@ -217,11 +217,11 @@ thread_create (const char *name, int priority,
 
 	//프로세스 종료되지 않음
 	t->exited =false;
-
+	
 	//exit, load semaphore 0으로 초기화
 	sema_init(&t->exit_sema,0);
 	sema_init(&t->load_sema,0);
-	
+
 	//생성된 프로세스를 부모프로세스의 자식 리스트에 추가
 	list_push_back(&t->parent->child_list, &t->child_elem);
 
@@ -497,8 +497,9 @@ init_thread (struct thread *t, const char *name, int priority)
   t->magic = THREAD_MAGIC;
   list_push_back (&all_list, &t->allelem);
 
- 	//자식 리스트 element 초기화
-	list_init(&t->child_elem);
+ 	//자식 리스트 초기화
+	list_init(&t->child_list);
+
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and

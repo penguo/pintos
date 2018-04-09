@@ -5,6 +5,7 @@
 #include "threads/thread.h"
 #include <devices/shutdown.h>
 #include <filesys/filesys.h>
+#include "userprog/process.h"
 
 static void syscall_handler (struct intr_frame *);
 void check_address(void *addr);
@@ -14,6 +15,7 @@ void exit(int status);
 tid_t exec(const char *cmd_line);
 bool create(const char* file, unsigned inital_size);
 bool remove(const char* file);
+int wait(int pid);
 
 void
 syscall_init (void) 
