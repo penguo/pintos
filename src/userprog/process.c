@@ -189,17 +189,22 @@ remove_child_process (struct thread *cp){
 int
 process_wait (tid_t child_tid) 
 {
-		
+	printf("wait enter\n");	
 	int exit_status;
 
 	//자식 프로세스의 프로세스 디스크립터 검색			
 	struct thread *child = get_child_process(child_tid);
+
+	if(child->parent == NULL)
+	printf("null!\n");
 
 	//리스트에서 찾을수 없을 시 -1 리턴
 	if(child == NULL)
 			return -1;
 
 	
+
+
 	//자식프로세스 종료 대기
 	sema_down(&child->exit_sema); 
 

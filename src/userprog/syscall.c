@@ -15,7 +15,7 @@ void exit(int status);
 tid_t exec(const char *cmd_line);
 bool create(const char* file, unsigned inital_size);
 bool remove(const char* file);
-int wait(int pid);
+int wait(tid_t pid);
 
 void
 syscall_init (void) 
@@ -31,7 +31,8 @@ halt(void)
 	shutdown_power_off();
 }
 
-void exit(int status)
+void
+exit(int status)
 {
 	//프로세스 디스크립터에 exit_status 저장
 	thread_current()->exit_status = status;
@@ -85,7 +86,7 @@ exec(const char *cmd_line)
 }
 
 int 
-wait(int pid)
+wait(tid_t pid)
 {
 	//자식 프로세스가 종료될 때 까지 대기
 	return process_wait(pid);
@@ -116,13 +117,14 @@ syscall_handler (struct intr_frame *f)
 		case SYS_EXEC:
 		get_argument(h_esp, arg, 1);
 		check_address((void *)arg[0]); //check
-		f->eax = exec((const char *)arg[0]);//return tid_t
+		f->eax = exec((const char *)arg[0]); //return tid_t
 		break;
 
 		case SYS_WAIT:
-		get_argument(h_esp,arg,1);
+		get_argument(h_esp, arg, 1);
+		printf("%p", arg[0]);
 		check_address((void *)arg[0]); //check
-		f->eax = process_wait((int)arg[0]);//return int
+		f->eax = wait((tid_t)arg[0]); //return int
 		break;
 
 		case SYS_CREATE:
@@ -163,11 +165,11 @@ syscall_handler (struct intr_frame *f)
 void 
 get_argument(void *esp, int *arg, int count)
 { //esp for stack pointer, count is number of argument
-	int i;
-	
+	int i;	
 	int *ptr;
 	esp += 4;
 	
+	printf("esp: %p\n", esp);
 	check_address(esp);
 	check_address(esp + ((count-1)*4)); //address checking for security
 	
@@ -184,6 +186,7 @@ check_address(void *addr)
 { //check address is user's address
 	//user address : 0x08048000~0xc0000000
 	if(!((void *)0x08048000 < addr && addr < (void *)0xc0000000)){
+		printf("\ncheck_address error!!\n");
 		thread_exit();
 	}
 }
