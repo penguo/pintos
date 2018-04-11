@@ -129,6 +129,9 @@ struct thread
 
 		//다음 차례에 할당될 파일 디스크립터 번호
 		int next_fd;
+
+		//프로그램 파일을 가리키는 파일 구조체 포인터
+		struct file *exec_file;
 	
 	};
 

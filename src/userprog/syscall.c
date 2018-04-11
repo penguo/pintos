@@ -306,6 +306,12 @@ syscall_handler (struct intr_frame *f)
 		f->eax = remove((const char *)arg[0]);
 		break;
 
+		case SYS_OPEN:
+		get_argument(h_esp, arg,1);
+		check_address((void *)arg[0]);
+		f->eax = open((const char *)arg[0]);
+		break;
+		
 		case SYS_FILESIZE:
 		get_argument(h_esp, arg, 1);
 		check_address((void *)arg[0]);
