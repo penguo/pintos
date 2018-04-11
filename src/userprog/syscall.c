@@ -297,7 +297,7 @@ syscall_handler (struct intr_frame *f)
 		case SYS_CREATE:
 		get_argument(h_esp, arg, 2); //get argument
 		check_address((void *)arg[0]); //check
-		f->eax = create((const char *)arg[0], arg[1]); // get return
+		f->eax = create((const char *)arg[0],(unsigned)arg[1]); // get return
 		break;
 
 		case SYS_REMOVE:
@@ -307,21 +307,36 @@ syscall_handler (struct intr_frame *f)
 		break;
 
 		case SYS_FILESIZE:
+		get_argument(h_esp, arg, 1);
+		check_address((void *)arg[0]);
+		f->eax = filesize((int)arg[0]);
 		break;
 
 		case SYS_READ:
+		get_argument(h_esp , arg, 3);
+		check_address((void *)arg[0]);
+		f->eax = read ((int)arg[0], (void *)arg[1], (unsigned)arg[2]);
 		break;
 
 		case SYS_WRITE:
+
 		break;
 
 		case SYS_SEEK:
+		get_argument(h_esp, arg, 2);
+		check_address((void*)arg[0]);
+		seek((int)arg[0], (unsigned)arg[1]);
 		break;
 
 		case SYS_TELL:
+		get_argument(h_esp, arg,1);
+		check_address((void*)arg[0]);
+		f->eax = tell((int)arg[0]);
 		break;
 
 		case SYS_CLOSE:
+		get_argument(h_esp, arg,1);
+		close((int)arg[0]);
 		break;
 
 		default :
