@@ -54,6 +54,9 @@ static long long user_ticks;    /* # of timer ticks in user programs. */
 #define TIME_SLICE 4            /* # of timer ticks to give each thread. */
 static unsigned thread_ticks;   /* # of timer ticks since last yield. */
 
+//파일 디스크립터테이블 할당할 사이즈 정의
+#define MAX_FILE 256
+
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -186,6 +189,18 @@ thread_create (const char *name, int priority,
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
 	
+	//파일 디스크립터 할당
+	t->fdt = malloc(sizeof(struct file *)*MAX_FILE);
+	
+	if(t->fdt == NULL)
+	{
+			printf("ftd malloc error");
+			return TID_ERROR;
+	}
+
+	//0과 1은 표준 입출력이므로 2로 초기화
+	t->next_fd = 2;
+
 	//부모 프로세스 저장 - 부모프로세스는 현재 실행중인 프로세스
 	t->parent = thread_current();
 	
@@ -197,8 +212,6 @@ thread_create (const char *name, int priority,
  
 	//생성된 프로세스를 부모프로세스의 자식 리스트에 추가
 	list_push_back(&thread_current()->child_list, &t->child_elem);
-
-
 
 
   /* Prepare thread for first run by initializing its stack.

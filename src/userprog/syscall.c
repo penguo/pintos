@@ -6,6 +6,8 @@
 #include <devices/shutdown.h>
 #include <filesys/filesys.h>
 #include "userprog/process.h"
+#include <filesys/file.h>
+#include <devices/input.h>
 
 static void syscall_handler (struct intr_frame *);
 void check_address(void *addr);
@@ -16,11 +18,21 @@ tid_t exec(const char *cmd_line);
 bool create(const char* file, unsigned inital_size);
 bool remove(const char* file);
 int wait(tid_t pid);
+int open(const char *file);
+int filesize(int fd);
+int read(int fd, void *buffer,unsigned size);
+int write(int fd, void *buffer, unsigned size);
+void seek(int fd, unsigned position);
+unsigned tell(int fd);
+void close(int fd);
 
 void
 syscall_init (void) 
 {
   intr_register_int (0x30, 3, INTR_ON, syscall_handler, "syscall");
+
+	//lock 초기화
+	lock_init(&filesys_lock);
 }
 
 void
@@ -92,6 +104,161 @@ wait(tid_t pid)
 	return process_wait(pid);
 }
 
+int
+open(const char *file)
+{
+	//파일 open			
+	struct file *f = filesys_open(file);
+	int fd;
+	
+	//g해당 파일이 존재하지 않을 시 -1 리턴
+	if(f == NULL)
+		return -1;
+	
+	//해당 파일 객체에 파일 디스크립터 부여
+	fd = process_add_file(f);
+
+	//파일 디스크립터 리턴
+	return fd;
+}
+
+int
+filesize(int fd)
+{
+	struct file *f = process_get_file(fd);
+
+	if(!f)
+		return -1;
+
+	return file_length(f);
+}
+
+int
+read(int fd, void *buffer, unsigned size)
+{
+	//lock 사용하여 동시 접근 방지
+	lock_acquire(&filesys_lock);
+
+	//파일 디스크립터를 이용하여 파일 객체 검색		
+	struct file *f = process_get_file(fd);
+
+	//파일 디스크립터가 0인 경우
+	if (fd == 0)
+	{
+					
+		int cnt = size;			
+		while(cnt--)
+		{
+			//키보드 입력 버퍼에 저장
+			*((char*)buffer++) = input_getc();	
+			
+			//개행문자 입력 시 break
+			if( *((char*)buffer--) == '\n')
+				break;
+		}
+
+		//lock 해제
+		lock_release(&filesys_lock);
+		
+		//버퍼 크기 리턴
+		return size-cnt;
+	}
+
+	if(f == NULL)
+	{
+		lock_release(&filesys_lock);
+		return 0;
+	}
+
+	else
+	{
+		//파일 read
+		size = file_read(f,buffer,size);
+		
+		//lock 해제
+		lock_release(&filesys_lock);
+		
+		//읽은 바이트 수 리턴
+		return size;
+	}
+
+}
+
+int
+write(int fd, void *buffer, unsigned size)
+{
+	//lock 사용하여 동시 접근 방지			
+	lock_acquire(&filesys_lock);
+	
+	struct file *f = process_get_file(fd);
+
+	//파일 디스크립터가 1인 경우
+	if(fd == 1)
+	{
+		//버퍼에 저장된 값 화면 출력
+		putbuf(buffer, size);
+		
+		//lock 해제
+		lock_release(&filesys_lock);
+		
+		//버퍼의 크기 리턴
+		return size;
+	}
+
+	if(f == NULL)
+	{
+		lock_release(&filesys_lock);
+		return 0;
+	}
+
+	else
+	{
+		//파일 write
+	 	size= file_write(f,buffer,size);
+		
+		//락 해제
+		lock_release(&filesys_lock);
+
+		//파일에 쓴 바이트 수 리턴
+		return size;
+	}
+
+}
+
+
+void
+seek(int fd, unsigned position)
+{
+	struct file *f = process_get_file(fd);
+	
+	if(f == NULL)
+		return;
+	//해당 열린 파일의 위치를 position만큼 이동
+	file_seek(f, position);
+	
+}
+
+unsigned
+tell(int fd)
+{
+	struct file *f = process_get_file(fd);
+
+	if(f == NULL)
+		return;
+	//해당 열린 파일의 위치를 반환
+	return file_tell(f);
+}
+
+void
+close(int fd)
+{
+	//해당 파일 디스크립터에 해당하는 파일을 닫고 
+	//파일 디스크립터 엔트리 초기화		
+	process_close_file(fd);
+}
+
+
+
 
 static void
 syscall_handler (struct intr_frame *f) 
@@ -122,7 +289,7 @@ syscall_handler (struct intr_frame *f)
 
 		case SYS_WAIT:
 		get_argument(h_esp, arg, 1);
-		printf("%p", arg[0]);
+		printf("%d", arg[0]);
 		check_address((void *)arg[0]); //check
 		f->eax = wait((tid_t)arg[0]); //return int
 		break;
