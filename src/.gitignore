@@ -2,5 +2,5 @@ cscope.files
 cscope.out
 TAGS
 tags
-*.var
+*.vars
 *.config
