@@ -315,7 +315,7 @@ syscall_handler (struct intr_frame *f)
 		
 		case SYS_FILESIZE:
 		get_argument(h_esp, arg, 1);
-		check_address(arg[0]);
+//		check_address(arg[0]);
 		f->eax = filesize(arg[0]);
 		break;
 
@@ -333,13 +333,13 @@ syscall_handler (struct intr_frame *f)
 
 		case SYS_SEEK:
 		get_argument(h_esp, arg, 2);
-		check_address(arg[0]);
+	//	check_address(arg[0]);
 		seek(arg[0], (unsigned)arg[1]);
 		break;
 
 		case SYS_TELL:
 		get_argument(h_esp, arg,1);
-		check_address(arg[0]);
+	//	check_address(arg[0]);
 		f->eax = tell(arg[0]);
 		break;
 
