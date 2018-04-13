@@ -18,11 +18,16 @@
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
 
+#define MAX_FILE 256
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack(char *argv[], int count, void **esp); 
-struct thread *get_child_process(int pid);
+/*struct thread *get_child_process(int pid);
 void remove_child_process (struct thread *cp);
+int process_add_file(struct file *f);
+struct file *process_get_file(int fd);
+void process_close_file(int fd);*/
+
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -153,8 +158,69 @@ argument_stack(char *argv[], int count, void **esp)
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 
-//자식 리스트 검색, 해당 pid에 일치하는 프로세스 디스크립터 주소 반환 함수
+
+//실행중인 프로세스의 파일 디스크립터 테이블에 새 파일을 추가하고
+//추가된 파일 객체의 파일 디스크립터 번호를 반환하는 함수
+int
+process_add_file(struct file *f)
+{
+	struct thread *t = thread_current();
+	int ret;
+
+	//파일 디스크립터 테이블이나 파일 인자가 null이라면 retrun null
+	if(t->fdt[t->next_fd] == NULL || f == NULL)
+			return NULL;
+
+	//파일 객체를 파일 디스크립터 테이블에 추가
+	t->fdt[t->next_fd] = f;
+	
+	ret = t->next_fd;
+
+	//다음 파일 디스크립터 값 1 증가
+	t->next_fd++;
+
+	return ret;
+}
+
+//프로세스의 파일 디스크립터 테이블을 검색하여 
+//파일 객체의 주소를 리턴하는 함수
 struct
+file *process_get_file(int fd)
+{
+	struct thread *t = thread_current();
+
+	//검색 실패시 null 리턴
+	//표준 입출력이거나 아직 할당되지 않은 경우,배열 사이즈 넘어가는 경우
+	if(fd <= 1 || t->next_fd <=fd || fd >= MAX_FILE)
+			return NULL;
+
+	//파일 디스크립터에 해당하는 파일 객체 리턴			
+	return t->fdt[fd];
+}
+
+//파일 디스크립터에 해당하는 파일 객체의 파일을 닫는 함수
+void
+process_close_file(int fd)
+{
+	struct thread *t = thread_current();
+
+	if(fd <= 1 || t->next_fd <= fd || fd >=MAX_FILE)
+		return;
+
+	//파일 닫음
+	file_close(t->fdt[fd]);
+
+	//해당 테이블 엔트리 NULL로 초기화
+	t->fdt[fd]=NULL;
+
+	t->next_fd = fd;
+
+}
+
+
+
+//자식 리스트 검색, 해당 pid에 일치하는 프로세스 디스크립터 주소 반환 함수
+struct 
 thread* get_child_process (int pid) {
 
 	//현재 실행중인 프로세스
@@ -198,10 +264,7 @@ process_wait (tid_t child_tid)
 	//리스트에서 찾을수 없을 시 -1 리턴
 	if(child == NULL)
 			return -1;
-
 	
-
-
 	//자식프로세스 종료 대기
 	sema_down(&child->exit_sema); 
 
@@ -220,10 +283,25 @@ process_exit (void)
 {
   struct thread *cur = thread_current ();
   uint32_t *pd;
-  
+ 
+	int i;
+
+	//파일 디스크립터 최소값인 2가 될때까지 프로세스에 열린 모든 파일을 닫음
+	for(i = cur->next_fd--; i>=2 ; i--)
+	{
+		process_close_file(i);
+	}
+	
+	//파일 디스크립터 테이블 메모리 해제
+	free(cur->fdt);
+
+	//파일 close - 이 과정에서 file_allow_write가 호출됨
+	file_close(cur->exec_file);
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
-  pd = cur->pagedir;
+	
+	pd = cur->pagedir;
   if (pd != NULL) 
     {
       /* Correct ordering here is crucial.  We must set
@@ -344,16 +422,32 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
+
   //프로그램 명 잘라내기
   char *save_ptr;
   strtok_r(file_name," ", &save_ptr);
-  /* Open executable file. */
+
+	//lock 획득
+	lock_acquire(&filesys_lock);
+	
+	/* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
     {
+			//lock 해제			
+		  lock_release(&filesys_lock);			
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
+
+	//thread 구조체의 exec_file을 현재 실행할 파일로 초기화
+	t->exec_file =file;
+
+	//file_deny-write를 이용하여 파일에 대한 write 거부
+	file_deny_write(file);
+
+	//lock 해제
+	lock_release(&filesys_lock);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
