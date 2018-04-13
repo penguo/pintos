@@ -107,7 +107,7 @@ start_process (void *file_name_)
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
 	argument_stack(parse,count,&if_.esp);
-  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
+//  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   
 	/* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
@@ -255,14 +255,14 @@ remove_child_process (struct thread *cp){
 int
 process_wait (tid_t child_tid) 
 {
-	printf("wait enter\n");	
+//	printf("wait enter\n");	i
 	int exit_status;
 
 	//자식 프로세스의 프로세스 디스크립터 검색			
 	struct thread *child = get_child_process(child_tid);
 
 	if(child->parent == NULL)
-	printf("null!\n");
+		printf("null!\n");
 
 	//리스트에서 찾을수 없을 시 -1 리턴
 	if(child == NULL)
@@ -299,7 +299,7 @@ process_exit (void)
 	free(cur->fdt);
 
 	//파일 close - 이 과정에서 file_allow_write가 호출됨
-	file_close(cur->exec_file);
+//	file_close(cur->exec_file);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -431,14 +431,14 @@ load (const char *file_name, void (**eip) (void), void **esp)
   strtok_r(file_name," ", &save_ptr);
 
 	//lock 획득
-	lock_acquire(&filesys_lock);
+//	lock_acquire(&filesys_lock);
 	
 	/* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
     {
 			//lock 해제			
-		  lock_release(&filesys_lock);			
+	//	  lock_release(&filesys_lock);			
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
@@ -447,10 +447,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
 	t->exec_file =file;
 
 	//file_deny-write를 이용하여 파일에 대한 write 거부
-	file_deny_write(file);
+//	file_deny_write(file);
 
 	//lock 해제
-	lock_release(&filesys_lock);
+//	lock_release(&filesys_lock);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
