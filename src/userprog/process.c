@@ -115,7 +115,7 @@ start_process (void *file_name_)
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
 	argument_stack(parse, count, &if_.esp);
-  hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
+ // hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   
 	int i;
 	for (i = 0; i<count; i++){

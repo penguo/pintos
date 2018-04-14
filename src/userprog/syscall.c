@@ -197,7 +197,7 @@ write(int fd, void *buffer, unsigned size)
 	if(fd == 1)
 	{
 		//버퍼에 저장된 값 화면 출력
-		putbuf(buffer, size);
+		putbuf((const char*)buffer, size);
 		
 		//버퍼의 크기 리턴
 		return size;
@@ -211,11 +211,10 @@ write(int fd, void *buffer, unsigned size)
 		lock_release(&filesys_lock);
 		return 0;
 	}
-
 	else
-	{
+	{	
 		//파일 write
-	 	size= file_write(f,buffer,size);
+	 	size = file_write(f,buffer,size);
 		
 		//락 해제
 		lock_release(&filesys_lock);
@@ -296,9 +295,9 @@ syscall_handler (struct intr_frame *f)
 		break;
 
 		case SYS_CREATE:
-		get_argument(h_esp, arg, 2); //get argument
+		get_argument(h_esp, arg, 2); //get argument/	
 		check_address(arg[0]); //check
-		f->eax = create(arg[0], arg[1]); // get return
+		f->eax = create((const char*)arg[0],(unsigned)arg[1]); // get return
 		break;
 
 		case SYS_REMOVE:
@@ -370,7 +369,7 @@ get_argument(void *esp, int *arg, int count)
 		check_address(ptr);
 		arg[i] = *ptr;
 
-		printf("arg[%d] is %d\n", i, arg[i]);
+	//	printf("arg[%d] is %s\n", i, arg[i]);
 	}
 }
 
@@ -379,7 +378,7 @@ check_address(void *addr)
 { //check address is user's address
 	//user address : 0x08048000~0xc0000000
 	if(!((void *)0x08048000 < addr && addr < (void *)0xc0000000)){
-		printf("\ncheck_address error!!\n");
-		thread_exit();
+	//	printf("\ncheck_address error!!\n");
+		exit(-1);
 	}
 }
