@@ -38,7 +38,7 @@ syscall_init (void)
 void
 halt(void)
 {
-	printf("\nhalt!!!\n");
+//	printf("\nhalt!!!\n");
 	printf("%s\n", thread_name());
 	shutdown_power_off();
 }
@@ -55,8 +55,8 @@ exit(int status)
 bool 
 create(const char* file, unsigned initial_size)
 {
-	printf("\ncreate!!!\n");
-	printf("%s: create(%s)\n", thread_name(), file);
+//	printf("\ncreate!!!\n");
+//	printf("%s: create(%s)\n", thread_name(), file);
 
 	return filesys_create(file, initial_size);
 }
@@ -65,8 +65,8 @@ create(const char* file, unsigned initial_size)
 bool
 remove(const char* file)
 {
-	printf("\nremove!!!\n");
-	printf("%s: remove(%s)\n", thread_name(), file);
+//	printf("\nremove!!!\n");
+//	printf("%s: remove(%s)\n", thread_name(), file);
 	
 	return filesys_remove(file);
 }
@@ -136,33 +136,32 @@ filesize(int fd)
 int
 read(int fd, void *buffer, unsigned size)
 {
-	//lock 사용하여 동시 접근 방지
-	lock_acquire(&filesys_lock);
 
 	//파일 디스크립터를 이용하여 파일 객체 검색		
 	struct file *f = process_get_file(fd);
+	int i;
+	
+	if( fd ==1)
+		return -1;
+
 
 	//파일 디스크립터가 0인 경우
 	if (fd == 0)
 	{
-					
-		int cnt = size;			
-		while(cnt--)
-		{
-			//키보드 입력 버퍼에 저장
-			*((char*)buffer++) = input_getc();	
-			
-			//개행문자 입력 시 break
-			if( *((char*)buffer--) == '\n')
-				break;
-		}
-
-		//lock 해제
-		lock_release(&filesys_lock);
+		char *cur_buffer = (char *)buffer;
 		
+		//input_getc 함수 이용하여 키보드 데이터 읽음
+		for(i=0 ; i<size ; i++)
+		{
+			cur_buffer[i] = input_getc();
+		}
+	
 		//버퍼 크기 리턴
-		return size-cnt;
+		return size;
 	}
+
+	//lock 사용하여 동시 접근 방지
+	lock_acquire(&filesys_lock);
 
 	if(f == NULL)
 	{
@@ -187,10 +186,12 @@ read(int fd, void *buffer, unsigned size)
 int
 write(int fd, void *buffer, unsigned size)
 {
-	//lock 사용하여 동시 접근 방지			
-	lock_acquire(&filesys_lock);
-	
+
 	struct file *f = process_get_file(fd);
+
+	if(fd == 0)
+		return -1;
+
 
 	//파일 디스크립터가 1인 경우
 	if(fd == 1)
@@ -198,12 +199,12 @@ write(int fd, void *buffer, unsigned size)
 		//버퍼에 저장된 값 화면 출력
 		putbuf(buffer, size);
 		
-		//lock 해제
-		lock_release(&filesys_lock);
-		
 		//버퍼의 크기 리턴
 		return size;
 	}
+
+
+	lock_acquire(&filesys_lock);
 
 	if(f == NULL)
 	{
@@ -267,7 +268,7 @@ syscall_handler (struct intr_frame *f)
 	int *h_esp = f->esp;
 	int syscall_num = *h_esp;	
 	int arg[5];	
-	printf("\nsyscall number : %d\n", syscall_num);	
+//	printf("\nsyscall number : %d\n", syscall_num);	
 
 	switch(syscall_num)
 	{
@@ -277,72 +278,74 @@ syscall_handler (struct intr_frame *f)
 		
 		case SYS_EXIT:
 		get_argument(h_esp, arg, 1);
-		exit((int)arg[0]);
+		exit(arg[0]);
 		f->eax = arg[0];
 		break;
 
 		case SYS_EXEC:
 		get_argument(h_esp, arg, 1);
-		check_address((void *)arg[0]); //check
-		f->eax = exec((const char *)arg[0]); //return tid_t
+		check_address(arg[0]); //check
+		f->eax = exec(arg[0]); //return tid_t
 		break;
 
 		case SYS_WAIT:
 		get_argument(h_esp, arg, 1);
-		printf("%d", arg[0]);
-		check_address((void *)arg[0]); //check
-		f->eax = wait((tid_t)arg[0]); //return int
+	//	printf("%d", arg[0]);
+	//	check_address(arg[0]); //check
+		f->eax = wait(arg[0]); //return int
 		break;
 
 		case SYS_CREATE:
 		get_argument(h_esp, arg, 2); //get argument
-		check_address((void *)arg[0]); //check
-		f->eax = create((const char *)arg[0],(unsigned)arg[1]); // get return
+		check_address(arg[0]); //check
+		f->eax = create(arg[0], arg[1]); // get return
 		break;
 
 		case SYS_REMOVE:
 		get_argument(h_esp, arg, 1);
-		check_address((void *)arg[0]); //check
-		f->eax = remove((const char *)arg[0]);
+		check_address(arg[0]); //check
+		f->eax = remove(arg[0]);
 		break;
 
 		case SYS_OPEN:
 		get_argument(h_esp, arg,1);
-		check_address((void *)arg[0]);
-		f->eax = open((const char *)arg[0]);
+		check_address(arg[0]);
+		f->eax = open(arg[0]);
 		break;
 		
 		case SYS_FILESIZE:
 		get_argument(h_esp, arg, 1);
-		check_address((void *)arg[0]);
-		f->eax = filesize((int)arg[0]);
+//		check_address(arg[0]);
+		f->eax = filesize(arg[0]);
 		break;
 
 		case SYS_READ:
 		get_argument(h_esp , arg, 3);
-		check_address((void *)arg[0]);
-		f->eax = read ((int)arg[0], (void *)arg[1], (unsigned)arg[2]);
+		check_address(arg[1]);
+		f->eax = read (arg[0], (const void *)arg[1], (unsigned)arg[2]);
 		break;
 
 		case SYS_WRITE:
-
+		get_argument(h_esp, arg,3);
+		check_address(arg[1]);
+		f->eax = write(arg[0] , (const void *)arg[1], (unsigned)arg[2]);
 		break;
 
 		case SYS_SEEK:
 		get_argument(h_esp, arg, 2);
-		check_address((void*)arg[0]);
-		seek((int)arg[0], (unsigned)arg[1]);
+	//	check_address(arg[0]);
+		seek(arg[0], (unsigned)arg[1]);
 		break;
 
 		case SYS_TELL:
 		get_argument(h_esp, arg,1);
-		check_address((void*)arg[0]);
-		f->eax = tell((int)arg[0]);
+	//	check_address(arg[0]);
+		f->eax = tell(arg[0]);
 		break;
 
 		case SYS_CLOSE:
 		get_argument(h_esp, arg,1);
-		close((int)arg[0]);
+		close(arg[0]);
 		break;
 
 		default :
@@ -355,17 +358,19 @@ get_argument(void *esp, int *arg, int count)
 { //esp for stack pointer, count is number of argument
 	int i;	
 	int *ptr;
-	esp += 4;
+//	esp += 4;
 	
-	printf("esp: %p\n", esp);
-	check_address(esp);
-	check_address(esp + ((count-1)*4)); //address checking for security
+//	printf("esp: %p\n", esp);
+//	check_address(esp);
+//	check_address(esp + ((count-1)*4)); //address checking for security
 	
 	for (i=0; i<count; i++){
-		ptr = (int *)esp + i;
+	
+		ptr = (int *)esp + i + 1;
+		check_address(ptr);
 		arg[i] = *ptr;
 
-//		printf("arg[%d] is %d\n", i, arg[i]);
+		printf("arg[%d] is %d\n", i, arg[i]);
 	}
 }
 

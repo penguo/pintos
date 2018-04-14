@@ -46,10 +46,18 @@ process_execute (const char *file_name)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
 
+	char *parse_name, *ptr_saved;
+	parse_name = palloc_get_page(0);
+	strlcpy (parse_name, file_name, PGSIZE);
+	parse_name = strtok_r(parse_name, " ", &ptr_saved);
 
   /* Create a new thread to execute FILE_NAME. */
-  tid = thread_create (file_name, PRI_DEFAULT, start_process, fn_copy);
-  if (tid == TID_ERROR)
+	// 기본의 file_name 대신, 파싱한 parse_name을 넣어준다.
+  tid = thread_create (parse_name, PRI_DEFAULT, start_process, fn_copy);
+
+	// 역할을 다한 parse_name은 free해준다.
+	palloc_free_page(parse_name);
+	if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
 }
@@ -60,17 +68,19 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
-  //char *f_name_cp;//원본 문자열 변경 방지
-  char *token,*save_ptr;
+  char *token,*ptr_saved;
   int count = 0;
-  //char **parse;
-  char *parse[256];
+  char **parse;
   struct intr_frame if_;
   bool success;
 
-  for(token = strtok_r(file_name," ",&save_ptr); token!=NULL; token = strtok_r(NULL," ", &save_ptr)){
-	  parse[count] = (char *)malloc((strlen(token)+1)*sizeof(char));
-	  strlcpy(parse[count],token,strlen(token)+1);
+	token = NULL;
+	ptr_saved = NULL;
+
+	parse = palloc_get_page(0);
+  for(token = strtok_r(file_name, " ", &ptr_saved); token != NULL; token = strtok_r(NULL," ", &ptr_saved)){
+	  parse[count] = malloc(strlen(token));
+	  strlcpy(parse[count], token, PGSIZE);
 	  count++;
   }
 	  
@@ -81,34 +91,37 @@ start_process (void *file_name_)
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
 
-  success = load (parse[0], &if_.eip, &if_.esp);
+  success = load(parse[0], &if_.eip, &if_.esp);
 	palloc_free_page(file_name);
 
-	if(success)
-	{
-		//부모프로세스 다시 진행
-		sema_up(&thread_current()->load_sema);
-	
-		//프로세스 디스크립터에 메모리 탑재 완료 flag 
-		thread_current()->loaded = true;
-	}
+	sema_up(&thread_current()->load_sema);
 
 	if (!success) 
 	{ 			
 		//프로세스 디스크립터에 메모리 탑재 실패 flag
 		thread_current()->loaded = false;			
 		thread_exit ();
-
+	}else{
+		//부모 프로세스 다시 진행
+//		sema_up(&thread_current()->load_sema);
+		//프로세스 디스크립터에 메모리 탑재 완료 flag
+		thread_current()->loaded = true;
 	}
+
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
      threads/intr-stubs.S).  Because intr_exit takes all of its
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-	argument_stack(parse,count,&if_.esp);
+	argument_stack(parse, count, &if_.esp);
   hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   
+	int i;
+	for (i = 0; i<count; i++){
+	//	palloc_free_page(parse[i]);
+	}
+
 	/* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
@@ -255,7 +268,7 @@ remove_child_process (struct thread *cp){
 int
 process_wait (tid_t child_tid) 
 {
-	printf("wait enter\n");	
+//	printf("wait enter\n");	i
 	int exit_status;
 
 	//자식 프로세스의 프로세스 디스크립터 검색			
@@ -264,6 +277,8 @@ process_wait (tid_t child_tid)
 	//리스트에서 찾을수 없을 시 -1 리턴
 	if(child == NULL)
 			return -1;
+	
+	//child->wait = true;
 	
 	//자식프로세스 종료 대기
 	sema_down(&child->exit_sema); 
@@ -296,7 +311,7 @@ process_exit (void)
 	free(cur->fdt);
 
 	//파일 close - 이 과정에서 file_allow_write가 호출됨
-	file_close(cur->exec_file);
+//	file_close(cur->exec_file);
 
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
@@ -428,14 +443,14 @@ load (const char *file_name, void (**eip) (void), void **esp)
   strtok_r(file_name," ", &save_ptr);
 
 	//lock 획득
-	lock_acquire(&filesys_lock);
+//	lock_acquire(&filesys_lock);
 	
 	/* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
     {
 			//lock 해제			
-		  lock_release(&filesys_lock);			
+	//	  lock_release(&filesys_lock);			
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
@@ -444,10 +459,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
 	t->exec_file =file;
 
 	//file_deny-write를 이용하여 파일에 대한 write 거부
-	file_deny_write(file);
+//	file_deny_write(file);
 
 	//lock 해제
-	lock_release(&filesys_lock);
+//	lock_release(&filesys_lock);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
