@@ -57,6 +57,7 @@ process_execute (const char *file_name)
 
 	// 역할을 다한 parse_name은 free해준다.
 	palloc_free_page(parse_name);
+
 	if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -68,17 +69,17 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
-  char *token,*ptr_saved;
+  char *token=NULL
+	char *ptr_saved=NULL;
   int count = 0;
   char **parse;
   struct intr_frame if_;
   bool success;
 
-	token = NULL;
-	ptr_saved = NULL;
-
 	parse = palloc_get_page(0);
-  for(token = strtok_r(file_name, " ", &ptr_saved); token != NULL; token = strtok_r(NULL," ", &ptr_saved)){
+  
+	for(token = strtok_r(file_name, " ", &ptr_saved); token != NULL; token = strtok_r(NULL," ", &ptr_saved))
+	{
 	  parse[count] = malloc(strlen(token));
 	  strlcpy(parse[count], token, PGSIZE);
 	  count++;
@@ -106,6 +107,7 @@ start_process (void *file_name_)
 //		sema_up(&thread_current()->load_sema);
 		//프로세스 디스크립터에 메모리 탑재 완료 flag
 		thread_current()->loaded = true;
+		
 	}
 
   /* Start the user process by simulating a return from an
@@ -114,13 +116,18 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
+
 	argument_stack(parse, count, &if_.esp);
  // hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   
+
+	//memory
 	int i;
 	for (i = 0; i<count; i++){
-	//	palloc_free_page(parse[i]);
+//		free(parse[i]);
 	}
+
+	palloc_free_page(parse);
 
 	/* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
@@ -128,37 +135,50 @@ start_process (void *file_name_)
 }
 
 void
-argument_stack(char *argv[], int count, void **esp)
+argument_stack(char **parse, int count, void **esp)
 {
-	int i, len=0;
-	int total_len =0;
+	int i,j;
+
+	char **arg_address = palloc_get_page(0);
 	
 	for(i= count-1 ; i>=0 ; i--)
 	{
-		len= strlen(argv[i]);
-		*esp -= len +1;
-		total_len += len + 1;
-		strlcpy(*esp, argv[i],len+1);
-		argv[i] =*esp;
+		for(j = strlen(parse[i]) ; j>=0 ; j--)
+		{
+			*esp = *esp -1;				
+			**(char **)esp = parse[i][j];
+						
+		}
+		arg_address[i]= *esp;
 	}
+
 	//word-align - 0 input
-	*esp -= total_len %4 !=0 ? 4-(total_len%4):0;
+	*esp = *esp-1;
+	uint8_t word_align = 0;
+	**(uint8_t**)esp = word_align;
+
 	//push NULL
 	*esp -=4;
-	*(int*)(*esp) =0;
+	**(uint32_t **)(esp) =0;
+	
+	//save address
 	for(i=count-1; i>=0;i--)
 	{
 		*esp -=4;
-		*(void**)(*esp) = argv[i];
+		**(uint32_t **)(esp) = (uint32_t)arg_address[i];
 	}
-	void *esp_backup = *esp;
+	
 	*esp -=4;
-	*(int*)(*esp) = esp_backup; //argv's address
+	**(uint32_t**)(esp) = *esp+4; //argv's address
+	
 	*esp -=4;
-	*(int*)(*esp) = count; // argv's num
+	**(uint32_t **)(esp) = count; // argv's num
 	//save retrun address
+	
 	*esp -=4;
-	*(int*)(*esp)=0; //fake return address	
+	**(uint32_t**)(esp)=0; //fake return address	
+
+	palloc_free_page(arg_address);
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
@@ -441,12 +461,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
 
-
-
-  //프로그램 명 잘라내기
- /* char *save_ptr;
-  strtok_r(file_name," ", &save_ptr);
-*/
 	//lock 획득
 	lock_acquire(&filesys_lock);
 	
