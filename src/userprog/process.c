@@ -21,7 +21,7 @@
 #define MAX_FILE 256
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
-void argument_stack(char *argv[], int count, void **esp); 
+void argument_stack(char **parse, int count, void **esp); 
 /*struct thread *get_child_process(int pid);
 void remove_child_process (struct thread *cp);
 int process_add_file(struct file *f);
