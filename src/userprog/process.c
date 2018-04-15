@@ -301,6 +301,12 @@ process_exit (void)
  
 	int i;
 
+	//file-close
+	if(cur->exec_file)
+	{
+			file_close(cur->exec_file);
+	}
+
 	//파일 디스크립터 최소값인 2가 될때까지 프로세스에 열린 모든 파일을 닫음
 	for(i = cur->next_fd--; i>=2 ; i--)
 	{
@@ -313,9 +319,7 @@ process_exit (void)
 	//파일 close - 이 과정에서 file_allow_write가 호출됨
 //	file_close(cur->exec_file);
 
-  /* Destroy the current process's page directory and switch back
-     to the kernel-only page directory. */
-	
+ 	
 	pd = cur->pagedir;
   if (pd != NULL) 
     {
@@ -438,19 +442,20 @@ load (const char *file_name, void (**eip) (void), void **esp)
   process_activate ();
 
 
-  //프로그램 명 잘라내기
-  char *save_ptr;
-  strtok_r(file_name," ", &save_ptr);
 
+  //프로그램 명 잘라내기
+ /* char *save_ptr;
+  strtok_r(file_name," ", &save_ptr);
+*/
 	//lock 획득
-//	lock_acquire(&filesys_lock);
+	lock_acquire(&filesys_lock);
 	
 	/* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
     {
 			//lock 해제			
-	//	  lock_release(&filesys_lock);			
+		  lock_release(&filesys_lock);			
       printf ("load: %s: open failed\n", file_name);
       goto done; 
     }
@@ -459,10 +464,10 @@ load (const char *file_name, void (**eip) (void), void **esp)
 	t->exec_file =file;
 
 	//file_deny-write를 이용하여 파일에 대한 write 거부
-//	file_deny_write(file);
+	file_deny_write(file);
 
 	//lock 해제
-//	lock_release(&filesys_lock);
+	lock_release(&filesys_lock);
 
   /* Read and verify executable header. */
   if (file_read (file, &ehdr, sizeof ehdr) != sizeof ehdr
@@ -547,7 +552,7 @@ printf ("load: %s: error loading executable\n", file_name);
 
  done:
   /* We arrive here whether the load is successful or not. */
-  file_close (file);
+//  file_close (file);
   return success;
 }
 
