@@ -69,8 +69,8 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
-  char *token=NULL
-	char *ptr_saved=NULL;
+  char *token=NULL;
+  char *ptr_saved=NULL;
   int count = 0;
   char **parse;
   struct intr_frame if_;
