@@ -45,7 +45,7 @@ halt(void)
 
 void
 exit(int status)
-{
+{	
 	//프로세스 디스크립터에 exit_status 저장
 	thread_current()->exit_status = status;
 	printf("%s: exit(%d)\n", thread_name(), status);
