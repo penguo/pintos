@@ -123,17 +123,7 @@ struct thread
 
 		//exit 호출시 종료 status 반환값 - 부모가 wait 호출시의 리턴 값
 		int exit_status;
-
-		//파일 디스크립터 테이블
-		struct file **fdt;
-
-		//다음 차례에 할당될 파일 디스크립터 번호
-		int next_fd;
-
-		//프로그램 파일을 가리키는 파일 구조체 포인터
-		struct file *exec_file;
-	
-	};
+  };
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.

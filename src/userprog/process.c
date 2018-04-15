@@ -57,7 +57,6 @@ process_execute (const char *file_name)
 
 	// 역할을 다한 parse_name은 free해준다.
 	palloc_free_page(parse_name);
-
 	if (tid == TID_ERROR)
     palloc_free_page (fn_copy); 
   return tid;
@@ -69,17 +68,17 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
-  char *token=NULL;
-  char *ptr_saved=NULL;
+  char *token,*ptr_saved;
   int count = 0;
   char **parse;
   struct intr_frame if_;
   bool success;
 
+	token = NULL;
+	ptr_saved = NULL;
+
 	parse = palloc_get_page(0);
-  
-	for(token = strtok_r(file_name, " ", &ptr_saved); token != NULL; token = strtok_r(NULL," ", &ptr_saved))
-	{
+  for(token = strtok_r(file_name, " ", &ptr_saved); token != NULL; token = strtok_r(NULL," ", &ptr_saved)){
 	  parse[count] = malloc(strlen(token));
 	  strlcpy(parse[count], token, PGSIZE);
 	  count++;
@@ -107,7 +106,6 @@ start_process (void *file_name_)
 //		sema_up(&thread_current()->load_sema);
 		//프로세스 디스크립터에 메모리 탑재 완료 flag
 		thread_current()->loaded = true;
-		
 	}
 
   /* Start the user process by simulating a return from an
@@ -116,18 +114,13 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-
 	argument_stack(parse, count, &if_.esp);
  // hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
   
-
-	//memory
 	int i;
 	for (i = 0; i<count; i++){
-//		free(parse[i]);
+	//	palloc_free_page(parse[i]);
 	}
-
-	palloc_free_page(parse);
 
 	/* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
@@ -135,50 +128,37 @@ start_process (void *file_name_)
 }
 
 void
-argument_stack(char **parse, int count, void **esp)
+argument_stack(char *argv[], int count, void **esp)
 {
-	int i,j;
-
-	char **arg_address = palloc_get_page(0);
+	int i, len=0;
+	int total_len =0;
 	
 	for(i= count-1 ; i>=0 ; i--)
 	{
-		for(j = strlen(parse[i]) ; j>=0 ; j--)
-		{
-			*esp = *esp -1;				
-			**(char **)esp = parse[i][j];
-						
-		}
-		arg_address[i]= *esp;
+		len= strlen(argv[i]);
+		*esp -= len +1;
+		total_len += len + 1;
+		strlcpy(*esp, argv[i],len+1);
+		argv[i] =*esp;
 	}
-
 	//word-align - 0 input
-	*esp = *esp-1;
-	uint8_t word_align = 0;
-	**(uint8_t**)esp = word_align;
-
+	*esp -= total_len %4 !=0 ? 4-(total_len%4):0;
 	//push NULL
 	*esp -=4;
-	**(uint32_t **)(esp) =0;
-	
-	//save address
+	*(int*)(*esp) =0;
 	for(i=count-1; i>=0;i--)
 	{
 		*esp -=4;
-		**(uint32_t **)(esp) = (uint32_t)arg_address[i];
+		*(void**)(*esp) = argv[i];
 	}
-	
+	void *esp_backup = *esp;
 	*esp -=4;
-	**(uint32_t**)(esp) = *esp+4; //argv's address
-	
+	*(int*)(*esp) = esp_backup; //argv's address
 	*esp -=4;
-	**(uint32_t **)(esp) = count; // argv's num
+	*(int*)(*esp) = count; // argv's num
 	//save retrun address
-	
 	*esp -=4;
-	**(uint32_t**)(esp)=0; //fake return address	
-
-	palloc_free_page(arg_address);
+	*(int*)(*esp)=0; //fake return address	
 }
 
 /* Waits for thread TID to die and returns its exit status.  If
@@ -321,12 +301,6 @@ process_exit (void)
  
 	int i;
 
-	//file-close
-	if(cur->exec_file)
-	{
-			file_close(cur->exec_file);
-	}
-
 	//파일 디스크립터 최소값인 2가 될때까지 프로세스에 열린 모든 파일을 닫음
 	for(i = cur->next_fd--; i>=2 ; i--)
 	{
@@ -337,9 +311,11 @@ process_exit (void)
 	free(cur->fdt);
 
 	//파일 close - 이 과정에서 file_allow_write가 호출됨
-//	file_close(cur->exec_file);
+	file_close(cur->exec_file);
 
- 	
+  /* Destroy the current process's page directory and switch back
+     to the kernel-only page directory. */
+	
 	pd = cur->pagedir;
   if (pd != NULL) 
     {
@@ -460,6 +436,11 @@ load (const char *file_name, void (**eip) (void), void **esp)
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
+
+
+  //프로그램 명 잘라내기
+  char *save_ptr;
+  strtok_r(file_name," ", &save_ptr);
 
 	//lock 획득
 	lock_acquire(&filesys_lock);
