@@ -114,7 +114,8 @@ struct thread
 		//프로세스 메모리 탑재 유무 flag
 		bool loaded; 
 		bool exited; 
-
+		bool waited;
+		
 		//exit 세마포어
 		struct semaphore exit_sema;
 

@@ -85,7 +85,6 @@ start_process (void *file_name_)
 	  count++;
   }
 	  
-
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -118,15 +117,13 @@ start_process (void *file_name_)
      and jump to it. */
 
 	argument_stack(parse, count, &if_.esp);
- // hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true);
-  
+ // hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true); 
 
 	//memory
 	int i;
 	for (i = 0; i<count; i++){
-//		free(parse[i]);
+		free(parse[i]);
 	}
-
 	palloc_free_page(parse);
 
 	/* If load failed, quit. */
@@ -298,11 +295,12 @@ process_wait (tid_t child_tid)
 	if(child == NULL)
 			return -1;
 	
-	//child->wait = true;
+	child->waited = true;
 	
 	//자식프로세스 종료 대기
-	sema_down(&child->exit_sema); 
-
+	if(!child->exited){
+		sema_down(&child->exit_sema); 
+	}
 	exit_status = child->exit_status;
 	
 	//자식프로세스 디스크립터 삭제(리스트에서 제거 / 메모리 할당 해제)

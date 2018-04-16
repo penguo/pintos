@@ -209,10 +209,15 @@ thread_create (const char *name, int priority,
 
 	//프로세스 종료되지 않음
 	t->exited =false;
+
+	//Process not waited
+	t->waited =false;
  
+	sema_init(&t->exit_sema, 0);
+	sema_init(&t->load_sema, 0);
+
 	//생성된 프로세스를 부모프로세스의 자식 리스트에 추가
 	list_push_back(&thread_current()->child_list, &t->child_elem);
-
 
   /* Prepare thread for first run by initializing its stack.
      Do this atomically so intermediate values for the 'stack' 
