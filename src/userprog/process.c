@@ -217,11 +217,11 @@ file *process_get_file(int fd)
 
 	//검색 실패시 null 리턴
 	//표준 입출력이거나 아직 할당되지 않은 경우,배열 사이즈 넘어가는 경우
-	if(fd <= 1)
-			return NULL;
+	if(t->fdt[fd] != NULL )
+			return t->fdt[fd];
 
 	//파일 디스크립터에 해당하는 파일 객체 리턴			
-	return t->fdt[fd];
+	return NULL;
 }
 
 //파일 디스크립터에 해당하는 파일 객체의 파일을 닫는 함수
