@@ -22,11 +22,6 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack(char **parse, int count, void **esp); 
-/*struct thread *get_child_process(int pid);
-void remove_child_process (struct thread *cp);
-int process_add_file(struct file *f);
-struct file *process_get_file(int fd);
-void process_close_file(int fd);*/
 
 
 /* Starts a new thread running a user program loaded from
@@ -45,6 +40,7 @@ process_execute (const char *file_name)
   if (fn_copy == NULL)
     return TID_ERROR;
   strlcpy (fn_copy, file_name, PGSIZE);
+
 
 	char *parse_name, *ptr_saved;
 	parse_name = palloc_get_page(0);
@@ -69,15 +65,18 @@ static void
 start_process (void *file_name_)
 {
   char *file_name = file_name_;
+  struct intr_frame if_;
+  bool success;
+
+  //커맨드라인 파싱 변수 선언 및 초기화
   char *token=NULL;
   char *ptr_saved=NULL;
   int count = 0;
   char **parse;
-  struct intr_frame if_;
-  bool success;
 
 	parse = palloc_get_page(0);
   
+  //커맨드라인 파싱
 	for(token = strtok_r(file_name, " ", &ptr_saved); token != NULL; token = strtok_r(NULL," ", &ptr_saved))
 	{
 	  parse[count] = malloc(strlen(token));
@@ -90,24 +89,33 @@ start_process (void *file_name_)
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
   if_.cs = SEL_UCSEG;
   if_.eflags = FLAG_IF | FLAG_MBS;
-
+  
+  //파싱된 첫번째 문자열을 넣어준다
   success = load(parse[0], &if_.eip, &if_.esp);
 	palloc_free_page(file_name);
 
+  //부모프로세스 다시 진행
 	sema_up(&thread_current()->load_sema);
-
+  /* If load failed, quit. */
 	if (!success) 
 	{ 			
 		//프로세스 디스크립터에 메모리 탑재 실패 flag
 		thread_current()->loaded = false;			
 		thread_exit ();
 	}else{
-		//부모 프로세스 다시 진행
-//		sema_up(&thread_current()->load_sema);
 		//프로세스 디스크립터에 메모리 탑재 완료 flag
 		thread_current()->loaded = true;
 		
 	}
+
+	argument_stack(parse, count, &if_.esp);
+
+  	//memory 누수 방지 위해 해제
+	int i;
+	for (i = 0; i<count; i++){
+		free(parse[i]);
+	}
+	palloc_free_page(parse);
 
   /* Start the user process by simulating a return from an
      interrupt, implemented by intr_exit (in
@@ -115,18 +123,6 @@ start_process (void *file_name_)
      arguments on the stack in the form of a `struct intr_frame',
      we just point the stack pointer (%esp) to our stack frame
      and jump to it. */
-
-	argument_stack(parse, count, &if_.esp);
- // hex_dump(if_.esp, if_.esp, PHYS_BASE - if_.esp, true); 
-
-	//memory
-	int i;
-	for (i = 0; i<count; i++){
-		free(parse[i]);
-	}
-	palloc_free_page(parse);
-
-	/* If load failed, quit. */
   asm volatile ("movl %0, %%esp; jmp intr_exit" : : "g" (&if_) : "memory");
   NOT_REACHED ();
 }
@@ -158,23 +154,26 @@ argument_stack(char **parse, int count, void **esp)
 	*esp -=4;
 	**(uint32_t **)(esp) =0;
 	
-	//save address
+	//주소 저장
 	for(i=count-1; i>=0;i--)
 	{
 		*esp -=4;
 		**(uint32_t **)(esp) = (uint32_t)arg_address[i];
 	}
-	
-	*esp -=4;
-	**(uint32_t**)(esp) = *esp+4; //argv's address
-	
-	*esp -=4;
-	**(uint32_t **)(esp) = count; // argv's num
-	//save retrun address
-	
-	*esp -=4;
-	**(uint32_t**)(esp)=0; //fake return address	
 
+  //argv's address 저장
+	*esp -=4;
+	**(uint32_t**)(esp) = *esp+4; 
+	
+  // argv's num
+	*esp -=4;
+	**(uint32_t **)(esp) = count; 
+
+  //fake address(0) 저장
+	*esp -=4;
+	**(uint32_t**)(esp)=0; 
+
+  //주소 저장한 배열 메모리 해제 
 	palloc_free_page(arg_address);
 }
 
@@ -212,12 +211,12 @@ file *process_get_file(int fd)
 {
 	struct thread *t = thread_current();
 
-	//검색 실패시 null 리턴
-	//표준 입출력이거나 아직 할당되지 않은 경우,배열 사이즈 넘어가는 경우
+
+	//파일 디스크립터에 해당하는 파일 객체 리턴			
 	if(t->fdt[fd] != NULL )
 			return t->fdt[fd];
 
-	//파일 디스크립터에 해당하는 파일 객체 리턴			
+	//검색 실패시 null 리턴
 	return NULL;
 }
 
@@ -278,7 +277,7 @@ remove_child_process (struct thread *cp){
 int
 process_wait (tid_t child_tid) 
 {
-//	printf("wait enter\n");	i
+
 	int exit_status;
 
 	//자식 프로세스의 프로세스 디스크립터 검색			
@@ -313,7 +312,7 @@ process_exit (void)
 	int i;
 
 
-	//file-close
+	//file_close시 file_allow_write가 호출됨
 	if(cur->exec_file)
 	{
 			file_close(cur->exec_file);
@@ -327,10 +326,6 @@ process_exit (void)
 	
 	//파일 디스크립터 테이블 메모리 해제
 	free(cur->fdt);
-
-	//파일 close - 이 과정에서 file_allow_write가 호출됨
-//	file_close(cur->exec_file);
-
  	
 	pd = cur->pagedir;
   if (pd != NULL) 
