@@ -201,18 +201,19 @@ thread_create (const char *name, int priority,
 	//0과 1은 표준 입출력이므로 2로 초기화
 	t->next_fd = 2;
 
-	//부모 프로세스 저장 - 부모프로세스는 현재 실행중인 프로세스
+	//부모 프로세스 저장 -> 부모프로세스는 현재 실행중인 프로세스
 	t->parent = thread_current();
 	
-	//프로그램 로드되지 않음
+	//프로세스 로드되지 않음
 	t->loaded =false;
 
 	//프로세스 종료되지 않음
 	t->exited =false;
 
-	//Process not waited
+	//프로세스 대기중이지 않음
 	t->waited =false;
  
+  //세마 초기화
 	sema_init(&t->exit_sema, 0);
 	sema_init(&t->load_sema, 0);
 
@@ -515,10 +516,6 @@ init_thread (struct thread *t, const char *name, int priority)
 
  	//자식 리스트 초기화
 	list_init(&t->child_list);
-
-	//exit, load semaphore 0으로 초기화
-  sema_init(&t->exit_sema,0);
-  sema_init(&t->load_sema,0);
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -590,7 +587,7 @@ thread_schedule_tail (struct thread *prev)
   if (prev != NULL && prev->status == THREAD_DYING && prev != initial_thread) 
     {
       ASSERT (prev != cur);
-   		//프로세스 디스크립터 삭제
+   		//프로세스 디스크립터 삭제(잘못된 코드인듯)
 			// palloc_free_page (prev);
     }
 }
