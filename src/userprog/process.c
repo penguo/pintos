@@ -312,6 +312,7 @@ process_exit (void)
  
 	int i;
 
+
 	//file-close
 	if(cur->exec_file)
 	{
