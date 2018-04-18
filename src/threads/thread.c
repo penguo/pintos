@@ -28,6 +28,11 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
+// sleep 상태의 thread list, THREAD_BLOCKED 상태
+static struct list sleep_list;
+// 사이즈를 최대로
+int64_t next_tick_to_awake = INT64_MAX;
+
 /* Idle thread. */
 static struct thread *idle_thread;
 
@@ -96,12 +101,14 @@ thread_init (void)
   list_init (&ready_list);
   list_init (&all_list);
 
+  //sleep_list를 초기화
+  list_init (&sleep_list);
+
   /* Set up a thread structure for the running thread. */
   initial_thread = running_thread ();
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
-
 }
 
 /* Starts preemptive thread scheduling by enabling interrupts.
@@ -628,6 +635,36 @@ allocate_tid (void)
 
   return tid;
 }
+
+// thread_sleep
+void thread_sleep(int64_t ticks){
+  struct thread *cur = thread_current();
+  enum intr_level old_level;
+
+  // 해당 과정중에는 인터럽트를 받아들이지 않는다.
+  old_level = intr_disable();
+
+  // 현재 스레드가 idle 스레드가 아닐 경우
+  if(cur != idle_thread){
+    // thread의 상태를 BLOCKED로 바꾸고
+    cur->status = THREAD_BLOCKED;
+
+    // 깨어나야 할 ticks을 저장
+    cur->wakeup_tick = ticks;
+    
+    // 슬립 큐에 삽입하고
+    list_push_back(&sleep_list, &cur->elem);
+    
+    // awake함수가 실행되어야 할 tick값을 update
+    update_next_tick_to_awake(ticks);
+  }
+
+  /* 현재 스레드를 슬립 큐에 삽입한 후에 스케줄한다. */
+    schedule();
+    intr_set_level(old_level);
+}
+
+// TODO pdf 203페이지까지 구현하였음
 
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
