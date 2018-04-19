@@ -136,8 +136,21 @@ struct thread
 
 		//프로그램 파일을 가리키는 파일 구조체 포인터
 		struct file *exec_file;
-	
+
 	};
+
+//실행중인 thread sleep
+void thread_sleep(int64_t ticks);
+
+//sleep queue에서 wake
+void thread_awake(int64_t ticks);
+
+//최소 tick을 가진 thread update
+void update_next_tick_to_awake(int64_t ticks);
+
+//getter of next_tick_to_awake
+int64_t get_next_tick_to_awake(void);
+
 
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.

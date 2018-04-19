@@ -62,6 +62,12 @@ static unsigned thread_ticks; /* # of timer ticks since last yield. */
 //파일 디스크립터테이블 할당할 사이즈 정의
 #define MAX_FILE 256
 
+//blocked된 상태의 스레드들의 리스트
+static struct list sleep_list;
+
+//깨워줘야 할 최소 tick 값
+int64_t next_tick_to_awake = INT64_MAX;
+
 /* If false (default), use round-robin scheduler.
    If true, use multi-level feedback queue scheduler.
    Controlled by kernel command-line option "-o mlfqs". */
@@ -78,6 +84,73 @@ static void *alloc_frame(struct thread *, size_t size);
 static void schedule(void);
 void thread_schedule_tail(struct thread *prev);
 static tid_t allocate_tid(void);
+
+
+
+//실행중인 thread sleep
+void thread_sleep(int64_t ticks){
+  struct thread *cur = thread_current ();
+	enum intr_level old_level;
+  
+	ASSERT (!intr_context ());
+
+	//interupt 무효화
+	old_level = intr_disable ();
+  if (cur != idle_thread){
+		//blocked 상태로 전환
+		cur->status = THREAD_BLOCKED;
+
+		//tick 저장
+		cur->wakeup_tick = ticks;
+	}
+		//sleep list에 추가하고 틱 업데이트
+	list_push_back(&sleep_list,&cur->elem);
+	update_next_tick_to_awake(ticks);
+  schedule ();
+  intr_set_level (old_level);
+	//끝나고 interupt다시 세팅
+	
+}
+
+//sleep queue에서 wake
+void thread_awake(int64_t ticks){
+
+	
+	struct list_elem *e = list_begin(&sleep_list);
+	
+	//sleep list 순회
+	while (e != list_end(&sleep_list))
+	{
+		struct thread *t = list_entry(e, struct thread, elem);
+
+		//만약 깨워야 할 tick이 현재 tick보다 크다면
+		if (ticks < t->wakeup_tick)
+		{
+			//리스트에서 제거하고 unblock해준다
+			list_remove(e);
+			thread_unblock(t);
+			//break필요한가?
+			break;
+		}
+		else{
+			//작다면 새로 작은 tick을 업데이트한다
+			update_next_tick_to_awake(ticks);
+			break;
+		}
+		
+	}
+}
+
+//최소 tick을 가진 thread update
+void update_next_tick_to_awake(int64_t ticks){
+	//작은 tick으로 변경
+	next_tick_to_awake = ticks;
+}
+
+//getter of next_tick_to_awake
+int64_t get_next_tick_to_awake(void){
+	return next_tick_to_awake;
+}
 
 /* Initializes the threading system by transforming the code
    that's currently running into a thread.  This can't work in
