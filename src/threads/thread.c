@@ -667,7 +667,7 @@ void thread_awake(int64_t ticks)
     {
       // 슬립 큐에서 제거하고 unblock한다.
       e = list_remove(e);
-      thread_unblock(t);
+      thread_unblock(thr);
     }
     else
     { // 작다면 update_next_tick_to_awake()를 호출한다.
