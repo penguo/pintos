@@ -28,11 +28,6 @@ static struct list ready_list;
    when they are first scheduled and removed when they exit. */
 static struct list all_list;
 
-// sleep 상태의 thread list, THREAD_BLOCKED 상태
-static struct list sleep_list;
-// 사이즈를 최대로
-int64_t next_tick_to_awake = INT64_MAX;
-
 /* Idle thread. */
 static struct thread *idle_thread;
 
