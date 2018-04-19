@@ -654,7 +654,6 @@ void thread_sleep(int64_t ticks)
 
 void thread_awake(int64_t ticks)
 {
-
   struct list_elem *e;
   e = list_begin(&sleep_list);
 
