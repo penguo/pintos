@@ -664,7 +664,41 @@ void thread_sleep(int64_t ticks){
     intr_set_level(old_level);
 }
 
-// TODO pdf 203페이지까지 구현하였음
+//sleep queue에서 wake
+void thread_awake(int64_t ticks){
+	struct list_elem *e = list_begin(&sleep_list);
+	//sleep list 순회
+	while (e != list_end(&sleep_list))
+	{
+		struct thread *t = list_entry(e, struct thread, elem);
+		//만약 깨워야 할 tick이 현재 tick보다 크다면
+		if (ticks < t->wakeup_tick)
+		{
+			//리스트에서 제거하고 unblock해준다
+			list_remove(e);
+			thread_unblock(t);
+			//break필요한가?
+			break;
+		}
+		else{
+			//작다면 새로 작은 tick을 업데이트한다
+			update_next_tick_to_awake(ticks);
+			break;
+		}
+	}
+}
+//최소 tick을 가진 thread update
+void update_next_tick_to_awake(int64_t ticks){
+	//작은 tick으로 변경
+	next_tick_to_awake = ticks;
+}
+//getter of next_tick_to_awake
+int64_t get_next_tick_to_awake(void){
+	return next_tick_to_awake;
+}
+
+
+// TODO 
 
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
