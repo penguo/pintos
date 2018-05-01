@@ -244,9 +244,13 @@ tid_t thread_create(const char *name, int priority,
   sf->ebp = 0;
 
   intr_set_level(old_level);
-
+	
   /* Add to run queue. */
   thread_unblock(t);
+
+	//새 스레드의 우선순위가 높으면 CPU양보
+	if(t->priority > thread_get_priority())
+		thread_yield();
 
   return tid;
 }
@@ -282,10 +286,17 @@ void thread_unblock(struct thread *t)
 
   old_level = intr_disable();
   ASSERT(t->status == THREAD_BLOCKED);
-  list_push_back(&ready_list, &t->elem);
+ // list_push_back(&ready_list, &t->elem);
+	//cmp_priority에 맞춰 순서대로 삽입
+	list_insert_ordered(&ready_list, &t->elem, cmp_priority,0);
   t->status = THREAD_READY;
   intr_set_level(old_level);
 }
+
+//두 스레드의 우선순위를 비교
+bool cmp_priority(const struct list_elem* a_, const struct list_elem* b_,       void *aux UNUSED){
+	return list_entry(b_,struct thread, elem)->priority < list_entry(a_, struct thread, elem)->priority;
+	 }
 
 /* Returns the name of the running thread. */
 const char *
@@ -357,7 +368,8 @@ void thread_yield(void)
 
   old_level = intr_disable();
   if (cur != idle_thread)
-    list_push_back(&ready_list, &cur->elem);
+		//cmp_priority에 맞춰 순서대로 삽입
+		list_insert_ordered(&ready_list, &cur->elem, cmp_priority,0);
   cur->status = THREAD_READY;
   schedule();
   intr_set_level(old_level);
@@ -383,6 +395,16 @@ void thread_foreach(thread_action_func *func, void *aux)
 void thread_set_priority(int new_priority)
 {
   thread_current()->priority = new_priority;
+	test_max_priority();
+}
+
+//우선순위를 비교해 스케줄링
+void test_max_priority(void){
+	//ready_list가 비어있는지 검사
+	ASSERT(!list_empty(&ready_list));
+	//ready_list의 헤드와 현재 스레드 우선순위 비교해 스케줄링
+	if(thread_get_priority() < list_entry(ready_list.head.next, struct thread,elem)->priority)
+		thread_yield();
 }
 
 /* Returns the current thread's priority. */
