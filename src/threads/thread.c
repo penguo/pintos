@@ -400,11 +400,12 @@ void thread_set_priority(int new_priority)
 
 //우선순위를 비교해 스케줄링
 void test_max_priority(void){
-	//ready_list가 비어있는지 검사
-	ASSERT(!list_empty(&ready_list));
-	//ready_list의 헤드와 현재 스레드 우선순위 비교해 스케줄링
-	if(thread_get_priority() < list_entry(ready_list.head.next, struct thread,elem)->priority)
-		thread_yield();
+	//ready_list가 비어있는지 검사 - priority-fifo error
+	if(!list_empty(&ready_list)){
+		//ready_list의 헤드와 현재 스레드 우선순위 비교해 스케줄링
+		if(thread_get_priority() < list_entry(ready_list.head.next, struct thread,elem)->priority)
+			thread_yield();
+	}
 }
 
 /* Returns the current thread's priority. */
