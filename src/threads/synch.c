@@ -341,13 +341,21 @@ void cond_broadcast(struct condition *cond, struct lock *lock)
     cond_signal(cond, lock);
 }
 
+/* 해당 condition variable을 기다리는 세마포어 리스트를
+가장 높은 순위를 가지는 스레드의 우선순위 순으로 정렬하도록 구현 */
 bool cmp_sem_priority(const struct list_elem *a, const struct list_elem *b, void *aux UNUSED)
 {
   struct semaphore_elem *sa = list_entry(a, struct semaphore_elem, elem);
   struct semaphore_elem *sb = list_entry(b, struct semaphore_elem, elem);
 
-  /* 해당 condition variable을 기다리는 세마포어 리스트를
-  가장 높은 순위를 가지는 스레드의 우선순위 순으로 정렬하도록 구현 */
+  if (list_empty(&sa->semaphore.waiters))
+  {
+    return false;
+  }
+  if (list_empty(&sb->semaphore.waiters))
+  {
+    return true;
+  }
 
   /* 첫 번째 인자의 우선순위가 두 번째 인자의 우선순위보다 높으면 1을 반환, 낮으면 0을 반환. */
   struct thread *ta = list_entry(list_front(&sa->semaphore.waiters), struct thread, elem);
