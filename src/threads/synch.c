@@ -351,7 +351,7 @@ bool cmp_sem_priority(const struct list_elem *a, const struct list_elem *b, void
 
   /* 첫 번째 인자의 우선순위가 두 번째 인자의 우선순위보다 높으면 1을 반환, 낮으면 0을 반환. */
   struct thread *ta = list_entry(list_front(&sa->semaphore.waiters), struct thread, elem);
-  struct thread *tb = list_entry(list_front(%sb->semaphore.waiters), struct thread, elem);
+  struct thread *tb = list_entry(list_front(&sb->semaphore.waiters), struct thread, elem);
 
   return ta->priority > tb->priority;
 }
