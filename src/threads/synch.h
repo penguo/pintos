@@ -38,11 +38,11 @@ struct condition
 
 void cond_init (struct condition *cond);
 void cond_wait (struct condition *cond, struct lock *lock);
-void cond_signal (struct condition *cond, struct lock *lock UNUSED);
+void cond_signal (struct condition *cond, struct lock *lock);
 void cond_broadcast (struct condition *cond, struct lock *lock);
 
 // Priority Scheduling - Synchronization 구현
-bool cmp_sem_priority(const struct list_elem *a, const struct list_emel *b, void *aux);
+bool cmp_sem_priority(const struct list_elem *a, const struct list_elem *b, void *aux);
 
 /* Optimization barrier.
 
