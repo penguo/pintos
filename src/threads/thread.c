@@ -11,6 +11,7 @@
 #include "threads/switch.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/malloc.h"
 #ifdef USERPROG
 #include "userprog/process.h"
 #endif
@@ -394,8 +395,21 @@ void thread_foreach(thread_action_func *func, void *aux)
 /* Sets the current thread's priority to NEW_PRIORITY. */
 void thread_set_priority(int new_priority)
 {
-  thread_current()->priority = new_priority;
-	test_max_priority();
+	struct thread *t = thread_current();
+	int old_priority = t->priority;
+	t->priority = new_priority;
+	
+	refresh_priority();
+	
+	if(old_priority < t->priority)
+	{
+		donate_priority();
+	}
+	if(old_priority > t->priority)
+	{
+		test_max_priority();
+	}
+
 }
 
 //우선순위를 비교해 스케줄링
@@ -534,6 +548,13 @@ init_thread(struct thread *t, const char *name, int priority)
 
   //자식 리스트 초기화
   list_init(&t->child_list);
+	
+	//priority donation
+	t->init_priority = priority;
+	t->wait_on_lock = NULL;
+	list_init(&t->donations);
+
+
 }
 
 /* Allocates a SIZE-byte frame at the top of thread T's stack and
@@ -719,6 +740,74 @@ int64_t get_next_tick_to_awake(void)
   // next_tick_to_awake 을 반환한다.
   return next_tick_to_awake;
 }
+
+//priority donation
+void donate_priority(void)
+{
+	
+	struct thread *t = thread_current();
+	struct lock *l = t->wait_on_lock;
+	int depth = 0;
+	while(l && depth< 8)
+	{
+		depth++;
+		
+		if(l->holder-> priority < t->priority)
+		{
+			l->holder->priority = t->priority;
+			t = l->holder;
+			l = t->wait_on_lock; 
+		}
+		else
+			return;
+	}
+}
+
+void remove_with_lock(struct lock *lock)
+{
+	struct list_elem *e = list_begin(&thread_current()->donations);
+	struct list_elem *next;
+
+	while(e != list_end(&thread_current()->donations))
+	{
+		struct thread *t= list_entry(e,struct thread, donation_elem);
+		next = list_next(e);
+		if(t->wait_on_lock == lock)
+		{
+			list_remove(e);
+	
+		}
+		e= next;
+	
+	}	
+
+}
+
+
+void refresh_priority(void)
+{
+	struct thread *t = thread_current();
+	t->priority = t->init_priority;
+
+	if(list_empty(&t->donations))
+		return;
+	
+	struct thread *l = list_entry(list_front(&t->donations), struct thread, donation_elem);
+
+if(l->priority > t->priority)
+		t->priority = l->priority;
+
+/*
+	//change priority
+	if(!list_empty(&t->donations) && l->priority > t->priority)
+	{
+		t->priority = l->priority;
+	}
+	else
+		t->priority = l->init_priority;
+*/
+}
+
 
 /* Offset of `stack' member within `struct thread'.
    Used by switch.S, which can't figure it out on its own. */
