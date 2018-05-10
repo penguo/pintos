@@ -95,8 +95,14 @@ struct thread
     int64_t wakeup_tick;
 
 		//priority donation
+
+    //donation이후 우선순위를 초기화 하기위해 초기값 저장
 		int init_priority; 
+
+    //해당 스레드가 대기하고있는 lock 자료구조의 주소를 저장
 		struct lock *wait_on_lock;
+    
+    //multiple donation을 고려하는데 사용
 		struct list donations;
 		struct list_elem donation_elem;
 

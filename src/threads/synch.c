@@ -201,15 +201,18 @@ void lock_acquire(struct lock *lock)
 	//priority donation
 	if(lock->holder)
 	{
+    //현재 스레드의 wait_on_lock 변수에 획득하기를 기다리는 lock의 주소 저장
 		thread_current()->wait_on_lock = lock;
+
+    //multiple donation을 고려하기 위해 이전상태의 우선순위를 기억(list로 관리)
 		list_insert_ordered(&lock->holder->donations, &thread_current()->donation_elem, cmp_priority, NULL);
-		donate_priority();
+   
+    //priority donation 수행
+  	donate_priority();
 	
 	}
 
   sema_down(&lock->semaphore);
-
-	//priority donation
 	thread_current()->wait_on_lock =  NULL;
 	
 	//after get the lock, update the lock holder
@@ -245,6 +248,7 @@ void lock_release(struct lock *lock)
   ASSERT(lock != NULL);
   ASSERT(lock_held_by_current_thread(lock));
 
+  //priority donation
 	remove_with_lock(lock);
   refresh_priority();
 
