@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/synch.h"
+#include <hash.h>
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -90,6 +91,9 @@ struct thread
     uint8_t *stack;                     /* Saved stack pointer. */
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
+
+		//thread의 가상 메모리 공간을 저장하는 hash table
+		struct hash vm;
 
     // 프로젝트 알람 클락
     int64_t wakeup_tick;
