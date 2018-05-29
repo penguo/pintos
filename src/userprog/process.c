@@ -18,10 +18,13 @@
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
 
+#include "vm/page.h"
+
 #define MAX_FILE 256
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack(char **parse, int count, void **esp); 
+
 
 
 /* Starts a new thread running a user program loaded from
@@ -73,6 +76,9 @@ start_process (void *file_name_)
   char *ptr_saved=NULL;
   int count = 0;
   char **parse;
+
+	//virtual_memory
+	vm_init(&thread_current()->vm);
 
 	parse = palloc_get_page(0);
   

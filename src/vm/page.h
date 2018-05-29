@@ -17,7 +17,9 @@ struct vm_entry{
 
 	/* Memory Mapped File 에서 다룰 예정 */
 	struct list_elem mmap_elem; /* mmap 리스트 element */
-	size_t offset;	/* 읽어야 할 파일 오프셋 */
+
+
+size_t offset;	/* 읽어야 할 파일 오프셋 */
 	size_t read_bytes;	/* 가상페이지에 쓰여져 있는 데이터 크기 */
 	size_t zero_bytes;	/* 0으로 채울 남은 페이지의 바이트 */
 
