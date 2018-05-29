@@ -92,9 +92,6 @@ struct thread
     int priority;                       /* Priority. */
     struct list_elem allelem;           /* List element for all threads list. */
 
-		//thread의 가상 메모리 공간을 저장하는 hash table
-		struct hash vm;
-
     // 프로젝트 알람 클락
     int64_t wakeup_tick;
 
@@ -120,6 +117,9 @@ struct thread
 
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
+
+		//thread의 가상 메모리 공간을 저장하는 hash table
+		struct hash vm;
 
 		//부모 프로세스의 디스크립터
 		struct thread *parent; 

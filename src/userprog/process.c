@@ -25,8 +25,6 @@ static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack(char **parse, int count, void **esp); 
 
-
-
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
    before process_execute() returns.  Returns the new process's
@@ -77,12 +75,12 @@ start_process (void *file_name_)
   int count = 0;
   char **parse;
 
-	//virtual_memory
+	// 해시테이블 초기화
 	vm_init(&thread_current()->vm);
 
 	parse = palloc_get_page(0);
   
-  //커맨드라인 파싱
+  // 커맨드라인 파싱
 	for(token = strtok_r(file_name, " ", &ptr_saved); token != NULL; token = strtok_r(NULL," ", &ptr_saved))
 	{
 	  parse[count] = malloc(strlen(token));
@@ -317,7 +315,6 @@ process_exit (void)
  
 	int i;
 
-
 	//file_close시 file_allow_write가 호출됨
 	if(cur->exec_file)
 	{
@@ -333,6 +330,9 @@ process_exit (void)
 	//파일 디스크립터 테이블 메모리 해제
 	free(cur->fdt);
  	
+  //프로세스 종료 시 vm_entry들을 제거
+  vm_destroy(&cur->vm);
+
 	pd = cur->pagedir;
   if (pd != NULL) 
     {
@@ -643,29 +643,53 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      /* Get a page of memory. */
-      uint8_t *kpage = palloc_get_page (PAL_USER);
-      if (kpage == NULL)
+      
+      // 물리 페이지를 할당하고 맵핑하는 부분 삭제
+      // /* Get a page of memory. */
+      // uint8_t *kpage = palloc_get_page (PAL_USER);
+      // if (kpage == NULL)
+      //   return false;
+
+      // /* Load this page. */
+      // if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+      //   {
+      //     palloc_free_page (kpage);
+      //     return false; 
+      //   }
+      // memset (kpage + page_read_bytes, 0, page_zero_bytes);
+
+      // /* Add the page to the process's address space. */
+      // if (!install_page (upage, kpage, writable)) 
+      // {
+      //   palloc_free_page (kpage);
+      //   return false; 
+      // }
+
+      // vm_entry 생성
+      struct vm_entry *vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
+      if(vme == NULL){
         return false;
+      }
 
-      /* Load this page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
-          palloc_free_page (kpage);
-          return false; 
-        }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
-
-      /* Add the page to the process's address space. */
-      if (!install_page (upage, kpage, writable)) 
-        {
-          palloc_free_page (kpage);
-          return false; 
-        }
-
+      // 초기화
+      vme->type = VM_BIN;
+      vme->vaddr = upage;
+      vme->writable = writable;
+      vme->is_loaded = false;
+      vme->file = file;
+      vme->offset = ofs;
+      vme->read_bytes = read_bytes;
+      vme->zero_bytes = zero_bytes;
+      
+      // 생성한 vm_entry를 해시테이블에 추가
+      bool res = insert_vme(&thread_current()->vm, vme);
+      if(!res){ // 실패했을 경우
+        return false;
+      }
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
+      ofs += page_read_bytes;
       upage += PGSIZE;
     }
   return true;
@@ -681,13 +705,30 @@ setup_stack (void **esp)
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
-    {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
-      if (success)
-        *esp = PHYS_BASE;
-      else
-        palloc_free_page (kpage);
-    }
+  {
+    success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+    if (success)
+      *esp = PHYS_BASE;
+    else
+      palloc_free_page (kpage);
+  }
+
+  // vm_entry 생성
+  kpage->vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
+  if(kpage->vme == NULL){
+    return false;
+  }
+  // 멤버들 설정
+  kpage->vme->vaddr = ((uint8_t *) PHYS_BASE) - PGSIZE;
+  kpage->vme->writable = true;
+  kpage->vme->is_loaded = true;
+
+  // 해시테이블에 추가
+  bool res = insert_vme(&thread_current()->vm, kpage->vme);
+  if(!res){ // 실패했을 경우
+    return false;
+  }
+
   return success;
 }
 
