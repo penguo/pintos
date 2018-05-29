@@ -199,7 +199,7 @@ MAP_FAILED	src/lib/user/syscall.h	13;"	d
 MAX_CNT	src/tests/internal/stdlib.c	19;"	d	file:
 MAX_ELEMS_PER_BUCKET	src/lib/kernel/hash.c	345;"	d	file:
 MAX_FILE	src/threads/thread.c	59;"	d	file:
-MAX_FILE	src/userprog/process.c	21;"	d	file:
+MAX_FILE	src/userprog/process.c	23;"	d	file:
 MAX_LEVEL	src/examples/pwd.c	76;"	d	file:
 MAX_SIZE	src/tests/internal/list.c	19;"	d	file:
 MAX_THREAD_CNT	src/tests/threads/mlfqs-fair.c	54;"	d	file:
@@ -235,16 +235,16 @@ PANIC	src/lib/debug.h	14;"	d
 PDBITS	src/threads/pte.h	28;"	d
 PDMASK	src/threads/pte.h	29;"	d
 PDSHIFT	src/threads/pte.h	27;"	d
-PE32Ax	src/userprog/process.c	371;"	d	file:
-PE32Hx	src/userprog/process.c	373;"	d	file:
-PE32Ox	src/userprog/process.c	372;"	d	file:
-PE32Wx	src/userprog/process.c	370;"	d	file:
+PE32Ax	src/userprog/process.c	377;"	d	file:
+PE32Hx	src/userprog/process.c	379;"	d	file:
+PE32Ox	src/userprog/process.c	378;"	d	file:
+PE32Wx	src/userprog/process.c	376;"	d	file:
 PF_P	src/userprog/exception.h	7;"	d
-PF_R	src/userprog/process.c	423;"	d	file:
+PF_R	src/userprog/process.c	429;"	d	file:
 PF_U	src/userprog/exception.h	9;"	d
 PF_W	src/userprog/exception.h	8;"	d
-PF_W	src/userprog/process.c	422;"	d	file:
-PF_X	src/userprog/process.c	421;"	d	file:
+PF_W	src/userprog/process.c	428;"	d	file:
+PF_X	src/userprog/process.c	427;"	d	file:
 PGBITS	src/threads/vaddr.h	19;"	d
 PGMASK	src/threads/vaddr.h	21;"	d
 PGSHIFT	src/threads/vaddr.h	18;"	d
@@ -319,14 +319,14 @@ PTRDIFF_MAX	src/lib/stdint.h	47;"	d
 PTRDIFF_MIN	src/lib/stdint.h	46;"	d
 PTSHIFT	src/threads/pte.h	21;"	d
 PTSPAN	src/threads/pte.h	23;"	d
-PT_DYNAMIC	src/userprog/process.c	413;"	d	file:
-PT_INTERP	src/userprog/process.c	414;"	d	file:
-PT_LOAD	src/userprog/process.c	412;"	d	file:
-PT_NOTE	src/userprog/process.c	415;"	d	file:
-PT_NULL	src/userprog/process.c	411;"	d	file:
-PT_PHDR	src/userprog/process.c	417;"	d	file:
-PT_SHLIB	src/userprog/process.c	416;"	d	file:
-PT_STACK	src/userprog/process.c	418;"	d	file:
+PT_DYNAMIC	src/userprog/process.c	419;"	d	file:
+PT_INTERP	src/userprog/process.c	420;"	d	file:
+PT_LOAD	src/userprog/process.c	418;"	d	file:
+PT_NOTE	src/userprog/process.c	421;"	d	file:
+PT_NULL	src/userprog/process.c	417;"	d	file:
+PT_PHDR	src/userprog/process.c	423;"	d	file:
+PT_SHLIB	src/userprog/process.c	422;"	d	file:
+PT_STACK	src/userprog/process.c	424;"	d	file:
 Prev	src/tests/Algorithm/Diff.pm	/^sub Prev {$/;"	s
 QUEUE	src/devices/serial.c	/^static enum { UNINIT, POLL, QUEUE } mode;$/;"	e	enum:__anon4	file:
 RBR_REG	src/devices/serial.c	21;"	d	file:
@@ -494,9 +494,9 @@ USTAR_HEADER_SIZE	src/lib/ustar.h	21;"	d
 USTAR_REGULAR	src/lib/ustar.h	/^    USTAR_REGULAR = '0',        \/* Ordinary file. *\/$/;"	e	enum:ustar_type
 Usage	src/utils/pintos	/^Usage: pintos [OPTION...] -- [ARGUMENT...]$/;"	l
 Usage	src/utils/pintos-mkdisk	/^Usage: pintos-mkdisk [OPTIONS] DISK [-- ARGUMENT...]$/;"	l
-VM_ANON	src/vm/page.h	7;"	d
-VM_BIN	src/vm/page.h	5;"	d
-VM_FILE	src/vm/page.h	6;"	d
+VM_ANON	src/vm/page.h	5;"	d
+VM_BIN	src/vm/page.h	3;"	d
+VM_FILE	src/vm/page.h	4;"	d
 ZERO	src/lib/stdio.c	/^        ZERO = 1 << 4,          \/* '0' *\/$/;"	e	enum:printf_conversion::__anon1	file:
 _Base	src/tests/Algorithm/Diff.pm	/^sub _Base() { 5 } # $me->[_Base]: Added to range's min and max$/;"	s
 _ChkPos	src/tests/Algorithm/Diff.pm	/^sub _ChkPos$/;"	s
@@ -751,6 +751,7 @@ channels	src/devices/ide.c	/^static struct channel channels[CHANNEL_CNT];$/;"	v	
 char_cnt	src/lib/user/console.c	/^    int char_cnt;       \/* Total characters written so far. *\/$/;"	m	struct:vhprintf_aux	file:
 chars	src/devices/kbd.c	/^    const char *chars;          \/* chars[0] has scancode first_scancode,$/;"	m	struct:keymap	file:
 chdir	src/lib/user/syscall.c	/^chdir (const char *dir)$/;"	f
+check_address	src/userprog/syscall.c	/^struct vm_entry* check_address (void* addr, void* esp){$/;"	f
 check_address	src/userprog/syscall.c	/^void check_address(void *addr)$/;"	f
 check_alarm	src/tests/threads/alarm.pm	/^sub check_alarm {$/;"	s
 check_archive	src/tests/tests.pm	/^sub check_archive {$/;"	s
@@ -831,7 +832,7 @@ debug_backtrace	src/lib/debug.c	/^debug_backtrace (void) $/;"	f
 debug_backtrace_all	src/lib/kernel/debug.c	/^debug_backtrace_all (void)$/;"	f
 debug_panic	src/lib/kernel/debug.c	/^debug_panic (const char *file, int line, const char *function,$/;"	f
 debug_panic	src/lib/user/debug.c	/^debug_panic (const char *file, int line, const char *function,$/;"	f
-delete_vme	src/vm/page.c	/^bool delete_vme (struct hash *vm, struct vm_entry *vme){$/;"	f
+delete_vme	src/vm/page.c	/^bool delete_vme(struct hash *vm, struct vm_entry *vme)$/;"	f
 deny_write	src/filesys/file.c	/^    bool deny_write;            \/* Has file_deny_write() been called? *\/$/;"	m	struct:file	file:
 deny_write_cnt	src/filesys/inode.c	/^    int deny_write_cnt;                 \/* 0: writes ok, >0: deny writes. *\/$/;"	m	struct:inode	file:
 desc	src/threads/malloc.c	/^    struct desc *desc;          \/* Owning descriptor, null for big block. *\/$/;"	m	struct:arena	typeref:struct:arena::desc	file:
@@ -964,7 +965,7 @@ false	src/lib/stdbool.h	6;"	d
 fb	src/devices/vga.c	/^static uint8_t (*fb)[COL_CNT][2];$/;"	v	file:
 fdt	src/threads/thread.h	/^		struct file **fdt;$/;"	m	struct:thread	typeref:struct:thread::file
 file	src/filesys/file.c	/^struct file $/;"	s	file:
-file	src/vm/page.h	/^	struct file* file;	\/* 가상주소와 맵핑된 파일 *\/$/;"	m	struct:vm_entry	typeref:struct:vm_entry::file
+file	src/vm/page.h	/^	struct file *file; \/* 가상주소와 맵핑된 파일 *\/$/;"	m	struct:vm_entry	typeref:struct:vm_entry::file
 file_allow_write	src/filesys/file.c	/^file_allow_write (struct file *file) $/;"	f
 file_close	src/filesys/file.c	/^file_close (struct file *file) $/;"	f
 file_deny_write	src/filesys/file.c	/^file_deny_write (struct file *file) $/;"	f
@@ -1001,7 +1002,7 @@ find_elem	src/lib/kernel/hash.c	/^find_elem (struct hash *h, struct list *bucket
 find_end_of_run	src/lib/kernel/list.c	/^find_end_of_run (struct list_elem *a, struct list_elem *b,$/;"	f	file:
 find_file	src/utils/Pintos.pm	/^sub find_file {$/;"	s
 find_in_path	src/utils/pintos	/^sub find_in_path {$/;"	s
-find_vme	src/vm/page.c	/^struct vm_entry *find_vme (void *vaddr){$/;"	f
+find_vme	src/vm/page.c	/^struct vm_entry *find_vme(void *vaddr)$/;"	f
 finish	src/tests/tests.pm	/^sub finish {$/;"	s
 finish_scratch_disk	src/utils/pintos	/^sub finish_scratch_disk {$/;"	s
 first	src/tests/threads/priority-donate-chain.c	/^    struct lock *first;$/;"	m	struct:lock_pair	typeref:struct:lock_pair::lock	file:
@@ -1163,7 +1164,7 @@ input_putc	src/devices/input.c	/^input_putc (uint8_t key) $/;"	f
 input_sector	src/devices/ide.c	/^input_sector (struct channel *c, void *sector) $/;"	f	file:
 insb	src/threads/io.h	/^insb (uint16_t port, void *addr, size_t cnt)$/;"	f
 insert_elem	src/lib/kernel/hash.c	/^insert_elem (struct hash *h, struct list *bucket, struct hash_elem *e) $/;"	f	file:
-insert_vme	src/vm/page.c	/^bool insert_vme (struct hash *vm, struct vm_entry *vme){$/;"	f
+insert_vme	src/vm/page.c	/^bool insert_vme(struct hash *vm, struct vm_entry *vme)$/;"	f
 insl	src/threads/io.h	/^insl (uint16_t port, void *addr, size_t cnt)$/;"	f
 install_page	src/userprog/process.c	/^install_page (void *upage, void *kpage, bool writable)$/;"	f	file:
 insult_SRC	src/examples/Makefile	/^insult_SRC = insult.c$/;"	m
@@ -1217,7 +1218,7 @@ is_dir	src/tests/tests.pm	/^sub is_dir {$/;"	s
 is_head	src/lib/kernel/list.c	/^is_head (struct list_elem *elem)$/;"	f	file:
 is_interior	src/lib/kernel/list.c	/^is_interior (struct list_elem *elem)$/;"	f	file:
 is_kernel_vaddr	src/threads/vaddr.h	/^is_kernel_vaddr (const void *vaddr) $/;"	f
-is_loaded	src/vm/page.h	/^	bool is_loaded;	\/* 물리메모리의 탑재 여부를 알려주는 플래그 *\/$/;"	m	struct:vm_entry
+is_loaded	src/vm/page.h	/^	bool is_loaded; \/* 물리메모리의 탑재 여부를 알려주는 플래그 *\/$/;"	m	struct:vm_entry
 is_partitioned	src/tests/vm/qsort.c	/^is_partitioned (const unsigned char *array, size_t size,$/;"	f	file:
 is_power_of_2	src/lib/kernel/hash.c	/^is_power_of_2 (size_t x) $/;"	f	file:
 is_sorted	src/lib/kernel/list.c	/^is_sorted (struct list_elem *a, struct list_elem *b,$/;"	f	file:
@@ -1474,7 +1475,7 @@ noun_and_prepLoc	src/examples/insult.c	/^char noun_and_prepLoc[] =$/;"	v
 numbers	src/examples/insult.c	/^char *numbers[] =$/;"	v
 numbersLoc	src/examples/insult.c	/^char numbersLoc[] = { 7, 0, 2, 4, 5, 7, 8, 10, 13 };$/;"	v
 off_t	src/filesys/off_t.h	/^typedef int32_t off_t;$/;"	t
-offset	src/vm/page.h	/^	size_t offset;	\/* 읽어야 할 파일 오프셋 *\/$/;"	m	struct:vm_entry
+offset	src/vm/page.h	/^	size_t offset;	 \/* 읽어야 할 파일 오프셋 *\/$/;"	m	struct:vm_entry
 offsetof	src/lib/stddef.h	5;"	d
 op	src/tests/threads/priority-fifo.c	/^    int **op;                   \/* Output buffer position. *\/$/;"	m	struct:simple_thread_data	file:
 open	src/lib/user/syscall.c	/^open (const char *file)$/;"	f
@@ -1621,7 +1622,7 @@ random_ulong	src/tests/random.pm	/^sub random_ulong {$/;"	s
 read	src/devices/block.h	/^    void (*read) (void *aux, block_sector_t, void *buffer);$/;"	m	struct:block_operations
 read	src/lib/user/syscall.c	/^read (int fd, void *buffer, unsigned size)$/;"	f
 read	src/userprog/syscall.c	/^int read(int fd, void *buffer, unsigned size)$/;"	f
-read_bytes	src/vm/page.h	/^	size_t read_bytes;	\/* 가상페이지에 쓰여져 있는 데이터 크기 *\/$/;"	m	struct:vm_entry
+read_bytes	src/vm/page.h	/^	size_t read_bytes; \/* 가상페이지에 쓰여져 있는 데이터 크기 *\/$/;"	m	struct:vm_entry
 read_cnt	src/devices/block.c	/^    unsigned long long read_cnt;        \/* Number of sectors read. *\/$/;"	m	struct:block	file:
 read_command_line	src/threads/init.c	/^read_command_line (void) $/;"	f	file:
 read_failed	src/threads/loader.S	/^read_failed:$/;"	l
@@ -1960,7 +1961,6 @@ test_main	src/tests/vm/pt-grow-stack.c	/^test_main (void)$/;"	f
 test_main	src/tests/vm/pt-grow-stk-sc.c	/^test_main (void)$/;"	f
 test_main	src/tests/vm/pt-write-code-2.c	/^test_main (void)$/;"	f
 test_main	src/tests/vm/pt-write-code.c	/^test_main (void)$/;"	f
-test_main	src/userprog/create-normal.c	/^test_main (void) $/;"	f
 test_max_priority	src/threads/thread.c	/^void test_max_priority(void)$/;"	f
 test_mlfqs_block	src/tests/threads/mlfqs-block.c	/^test_mlfqs_block (void) $/;"	f
 test_mlfqs_fair	src/tests/threads/mlfqs-fair.c	/^test_mlfqs_fair (int thread_cnt, int nice_min, int nice_step)$/;"	f	file:
@@ -2071,7 +2071,7 @@ turn_off_least_1bit	src/lib/kernel/hash.c	/^turn_off_least_1bit (size_t x) $/;"	
 txq	src/devices/serial.c	/^static struct intq txq;$/;"	v	typeref:struct:intq	file:
 type	src/devices/block.c	/^    enum block_type type;                \/* Type of block device. *\/$/;"	m	struct:block	typeref:enum:block::block_type	file:
 type	src/lib/stdio.c	/^    type;$/;"	m	struct:printf_conversion	typeref:enum:printf_conversion::__anon2	file:
-type	src/vm/page.h	/^	uint8_t type;	\/* VM_BIN, VM_FILE, VM_ANON의 타입 *\/$/;"	m	struct:vm_entry
+type	src/vm/page.h	/^	uint8_t type;   \/* VM_BIN, VM_FILE, VM_ANON의 타입 *\/$/;"	m	struct:vm_entry
 typeflag	src/lib/ustar.c	/^    char typeflag;              \/* An enum ustar_type value. *\/$/;"	m	struct:ustar_header	file:
 udiv64	src/lib/arithmetic.c	/^udiv64 (uint64_t n, uint64_t d)$/;"	f	file:
 uid	src/lib/ustar.c	/^    char uid[8];                \/* User ID as octal string. *\/$/;"	m	struct:ustar_header	file:
@@ -2111,7 +2111,7 @@ va_copy	src/lib/stdarg.h	12;"	d
 va_end	src/lib/stdarg.h	10;"	d
 va_list	src/lib/stdarg.h	/^typedef __builtin_va_list va_list;$/;"	t
 va_start	src/lib/stdarg.h	9;"	d
-vaddr	src/vm/page.h	/^	void *vaddr;\/* vm_entry의 가상페이지 번호 *\/$/;"	m	struct:vm_entry
+vaddr	src/vm/page.h	/^	void *vaddr;	\/* vm_entry의 가상페이지 번호 *\/$/;"	m	struct:vm_entry
 validate_segment	src/userprog/process.c	/^validate_segment (const struct Elf32_Phdr *phdr, struct file *file) $/;"	f	file:
 value	src/tests/internal/list.c	/^    int value;                  \/* Item value. *\/$/;"	m	struct:value	file:
 value	src/tests/internal/list.c	/^struct value $/;"	s	file:
@@ -2131,12 +2131,12 @@ vhprintf	src/lib/user/console.c	/^vhprintf (int handle, const char *format, va_l
 vhprintf_aux	src/lib/user/console.c	/^struct vhprintf_aux $/;"	s	file:
 vm	src/threads/thread.h	/^		struct hash vm;$/;"	m	struct:thread	typeref:struct:thread::hash
 vm_SRC	src/vm/build/Makefile	/^vm_SRC = vm\/page.c$/;"	m
-vm_destroy	src/vm/page.c	/^void vm_destroy (struct hash *vm){$/;"	f
-vm_destroy_func	src/vm/page.c	/^void vm_destroy_func (struct hash_elem *e, void *aux){$/;"	f
-vm_entry	src/vm/page.h	/^struct vm_entry{$/;"	s
-vm_hash_func	src/vm/page.c	/^static unsigned vm_hash_func (const struct hash_elem *e,void *aux){$/;"	f	file:
-vm_init	src/vm/page.c	/^void vm_init (struct hash *vm){$/;"	f
-vm_less_func	src/vm/page.c	/^static bool vm_less_func (const struct hash_elem *a, const struct hash_elem *b){$/;"	f	file:
+vm_destroy	src/vm/page.c	/^void vm_destroy(struct hash *vm)$/;"	f
+vm_destroy_func	src/vm/page.c	/^void vm_destroy_func(struct hash_elem *e, void *aux)$/;"	f
+vm_entry	src/vm/page.h	/^struct vm_entry$/;"	s
+vm_hash_func	src/vm/page.c	/^static unsigned vm_hash_func(const struct hash_elem *e, void *aux)$/;"	f	file:
+vm_init	src/vm/page.c	/^void vm_init(struct hash *vm)$/;"	f
+vm_less_func	src/vm/page.c	/^static bool vm_less_func(const struct hash_elem *a, const struct hash_elem *b)$/;"	f	file:
 vmsg	src/tests/lib.c	/^vmsg (const char *format, va_list args, const char *suffix) $/;"	f	file:
 vprintf	src/lib/kernel/console.c	/^vprintf (const char *format, va_list args) $/;"	f
 vprintf	src/lib/user/console.c	/^vprintf (const char *format, va_list args) $/;"	f
@@ -2161,7 +2161,7 @@ wake_time	src/tests/threads/alarm-priority.c	/^static int64_t wake_time;$/;"	v	f
 wakeup_tick	src/threads/thread.h	/^    int64_t wakeup_tick;$/;"	m	struct:thread
 width	src/lib/stdio.c	/^    int width;$/;"	m	struct:printf_conversion	file:
 wrap_open	src/tests/filesys/extended/dir-rm-cwd.c	/^wrap_open (const char *name) $/;"	f	file:
-writable	src/vm/page.h	/^	bool writable;	\/* True일 경우 해당 주소에 write 가능		 False일 경우 해당 주소에 write 불가능 *\/$/;"	m	struct:vm_entry
+writable	src/vm/page.h	/^	bool writable;  \/* True일 경우 해당 주소에 write 가능		 False일 경우 해당 주소에 write 불가능 *\/$/;"	m	struct:vm_entry
 write	src/devices/block.h	/^    void (*write) (void *aux, block_sector_t, const void *buffer);$/;"	m	struct:block_operations
 write	src/lib/user/syscall.c	/^write (int fd, const void *buffer, unsigned size)$/;"	f
 write	src/userprog/syscall.c	/^int write(int fd, void *buffer, unsigned size)$/;"	f
@@ -2177,4 +2177,4 @@ x	src/tests/vm/mmap-over-data.c	/^static char x;$/;"	v	file:
 xsystem	src/utils/pintos	/^sub xsystem {$/;"	s
 yield_on_return	src/threads/interrupt.c	/^static bool yield_on_return;    \/* Should we yield on interrupt return? *\/$/;"	v	file:
 zero	src/threads/intr-stubs.S	/^#define zero                                    \\$/;"	d
-zero_bytes	src/vm/page.h	/^	size_t zero_bytes;	\/* 0으로 채울 남은 페이지의 바이트 *\/$/;"	m	struct:vm_entry
+zero_bytes	src/vm/page.h	/^	size_t zero_bytes; \/* 0으로 채울 남은 페이지의 바이트 *\/$/;"	m	struct:vm_entry

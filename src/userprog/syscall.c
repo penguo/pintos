@@ -8,6 +8,8 @@
 #include "userprog/process.h"
 #include <filesys/file.h>
 #include <devices/input.h>
+#include "vm/page.h"
+
 
 static void syscall_handler(struct intr_frame *);
 void check_address(void *addr);
@@ -257,7 +259,7 @@ syscall_handler(struct intr_frame *f)
 
 	case SYS_EXEC: // 2
 		get_argument(h_esp, arg, 1);
-		check_address(arg[0]); //check
+		check_valid_string((const void*)arg[0],h_esp); //check
 		f->eax = exec(arg[0]); //return tid_t
 		break;
 
@@ -268,19 +270,19 @@ syscall_handler(struct intr_frame *f)
 
 	case SYS_CREATE: // 4
 		get_argument(h_esp, arg, 2);							 //get argument
-		check_address(arg[0]);									 //check
+		check_valid_string((const void*)arg[0],h_esp);									 //check
 		f->eax = create((const char *)arg[0], (unsigned)arg[1]); //get return
 		break;
 
 	case SYS_REMOVE: // 5
 		get_argument(h_esp, arg, 1);
-		check_address(arg[0]); //check
+		check_valid_string((const void*)arg[0],h_esp); //check
 		f->eax = remove(arg[0]);
 		break;
 
 	case SYS_OPEN: // 6
 		get_argument(h_esp, arg, 1);
-		check_address(arg[0]);
+		check_valid_string((const void*)arg[0],h_esp);
 		f->eax = open(arg[0]);
 		break;
 
@@ -291,13 +293,13 @@ syscall_handler(struct intr_frame *f)
 
 	case SYS_READ: // 8
 		get_argument(h_esp, arg, 3);
-		check_address(arg[1]);
+		check_valid_buffer((void*)arg[1],(unsigned)arg[2],h_esp,true);
 		f->eax = read(arg[0], (const void *)arg[1], (unsigned)arg[2]);
 		break;
 
 	case SYS_WRITE: // 9
 		get_argument(h_esp, arg, 3);
-		check_address(arg[1]);
+		check_valid_buffer((void*)arg[1],(unsgined)arg[2],h_esp,false);
 		f->eax = write(arg[0], (const void *)arg[1], (unsigned)arg[2]);
 		break;
 
@@ -331,18 +333,42 @@ void get_argument(void *esp, int *arg, int count)
 		//esp 다음 자리에 arg[i] 배정
 		ptr = (int *)esp + i + 1;
 		//ptr이 커널 영역을 침입하지 않는지 체크
-		check_address(ptr);
+		check_address(ptr,esp);
 		arg[i] = *ptr;
 	}
 }
 
-void check_address(void *addr)
-{ 
+
+struct vm_entry* check_address (void* addr, void* esp){	
 	//check address is user's address
 	//user address : 0x08048000~0xc0000000
-	if (!((void *)0x08048000 < addr && addr < (void *)0xc0000000))
-	{
-		//	printf("\ncheck_address error!!\n");
-		exit(-1);
+		if (!((void *)0x08048000 < addr && addr < (void *)0xc0000000))
+			exit(-1);
+	
+		vm_entry* vme = find_vme(addr);
+		if(!vme)
+			exit(-1);
+		else{
+			return vme;
+		}
+}
+
+void check_valid_buffer (void* buffer, unsigned size, void* esp, bool to_write){
+	int i;
+	char* l_buffer = (char *) buffer;
+	for(i = 0; i < size; i++){
+		struct vme = check_address((void *)l_buffer, esp);
+		if(vme && to_write)
+			if(!vme->writable)
+				exit(-1);
+		l_buffer++;
+	}
+}
+
+void check_valid_string (const void* str,  void* esp){
+	check_address(str, esp);
+	while((char *)str != 0){
+		str = (char *) str + 1;
+		check_valid_ptr(str,esp);
 	}
 }
