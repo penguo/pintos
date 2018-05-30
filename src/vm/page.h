@@ -55,3 +55,6 @@ struct vm_entry *find_vme(void *vaddr);
 void vm_destroy(struct hash *vm);
 void vm_destroy_func(struct hash_elem *e, void *aux);
 /*TODO 321p*/
+
+bool load_file(void *kaddr, struct vm_entry *vme);
+

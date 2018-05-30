@@ -7,6 +7,7 @@
 #include "vm/page.h"
 #include "syscall.h"
 #include "threads/vaddr.h"
+#include "process.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -154,8 +155,6 @@ page_fault (struct intr_frame *f)
  //after search vm_entry, page allocate(345p)
 	bool load = false;
 
-if(user)
-{
 
 	if(not_present)
 	{
@@ -164,24 +163,20 @@ if(user)
 		{
 			if(write && (vme->writable == 0))
 				exit(-1);
-			vme->pinned = true;
-			load = handle_mm_fault(vme);
-			vme->pinned = false;
-		
+				
+			if(!handle_mm_fault(vme))
+				exit(-1);
 		}
-		else if(fault_addr >= f->esp -32)
-			load = expand_stack(fault_addr);
+		
 	}
- else
-	exit(-1);
-}
-//	exit(-1);
+	else
+		exit(-1);
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
 
-	if(!load)
+/*	if(!load)
 	{
 	printf ("Page fault at %p: %s error %s page in %s context.\n",
           fault_addr,
@@ -189,9 +184,7 @@ if(user)
           write ? "writing" : "reading",
           user ? "user" : "kernel");
   kill (f); 
-
-
-	}
+	}*/
 
 }
 

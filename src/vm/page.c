@@ -69,15 +69,14 @@ struct vm_entry *find_vme(void *vaddr)
 {
 	void *page_num;
 	struct hash_elem *h_elem;
-	struct vm_entry *vme;
+	struct vm_entry vme;
 
 	// vaddr의 페이지 번호를 얻음
-	page_num = pg_round_down(vaddr);
+	vme.vaddr = pg_round_down(vaddr);
 
 	// hash_elem 구조체 얻음
 	//struct hash_elem *hash_find (struct hash *, struct hash_elem *);
-	vme->vaddr = page_num;
-	h_elem = hash_find(&thread_current()->vm, &vme->elem);
+	h_elem = hash_find(&thread_current()->vm, &vme.elem);
 
 	if(h_elem == NULL){ // 존재하지 않는다면 NULL 리턴
 		return NULL;
@@ -88,11 +87,11 @@ struct vm_entry *find_vme(void *vaddr)
 
 void vm_destroy(struct hash *vm)
 {
-	hash_destroy(vm, &vm_destroy_func);
+	hash_destroy(vm, vm_destroy_func);
 	return;
 }
 
-void vm_destroy_func(struct hash_elem *e, void *aux)
+void vm_destroy_func(struct hash_elem *e, void *aux UNUSED)
 {
 	struct vm_entry *vme;
 
@@ -112,18 +111,24 @@ bool load_file(void *kaddr, struct vm_entry *vme)
 
 	//using file_read_at();
 	//writing data at phy-page using file_read_at
-	//return file_read_at
-	//padding 0;
-	//if loading success, return true
 	if(vme->read_bytes >0)
 	{
-		
-
-	
+		if(vme->read_bytes != file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset))
+		{		
+			return false;
+		}
+		memset(kaddr+vme->read_bytes,0,vme->zero_bytes);
 	
 	}
+	
+	//padding 0;
+	else
+	{
+		memset(kaddr,0,PGSIZE);
+	}
 
-
+	//if loading success, return true
+	return true;
 }
 
 

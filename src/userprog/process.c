@@ -311,7 +311,7 @@ bool handle_mm_fault(struct vm_entry *vme)
 
 	if(!load_success)
 	{
-		free_page(page);
+		palloc_free_page(page);
 		return false;
 	}
 
