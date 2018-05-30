@@ -5,4 +5,5 @@ tags
 *.vars
 *.config
 *.swp
-
+*.DS_STORE
+*.vscode
