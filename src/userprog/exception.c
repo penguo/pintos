@@ -153,38 +153,32 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
 	
  //after search vm_entry, page allocate(345p)
-	bool load = false;
+	
+	if(!not_present)
+		exit(-1);
+
+	
+	bool loaded = false;
+	struct vm_entry *vme = find_vme(fault_addr);
+	
+	if(!vme)
+		exit(-1);
 
 
-	if(not_present)
-	{
-		struct vm_entry *vme = find_vme(fault_addr);
-		if(vme)
-		{
-			if(write && (vme->writable == 0))
-				exit(-1);
-				
-			if(!handle_mm_fault(vme))
-				exit(-1);
-		}
-		
-	}
-	else
+	loaded = handle_mm_fault(vme);		
+	
+	if(!loaded)
 		exit(-1);
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
-
-/*	if(!load)
-	{
-	printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
-  kill (f); 
-	}*/
-
+	
+	//printf ("Page fault at %p: %s error %s page in %s context.\n",
+  ///      fault_addr,
+  //        not_present ? "not present" : "rights violation",
+  //        write ? "writing" : "reading",
+  //        user ? "user" : "kernel");
+	// kill (f); 
 }
 
