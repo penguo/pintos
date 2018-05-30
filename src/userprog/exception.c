@@ -157,17 +157,19 @@ page_fault (struct intr_frame *f)
 	if(!not_present)
 		exit(-1);
 
-	
-	bool loaded = false;
+	//read only 페이지에 대한 접근이 아닐 경우
+  //페이지폴트가 일어난 주소에 대한 vm entry구조체 탐색 
+	bool is_loaded = false;
 	struct vm_entry *vme = find_vme(fault_addr);
 	
 	if(!vme)
 		exit(-1);
 
-
-	loaded = handle_mm_fault(vme);		
+//vm_entry를 인자로 넘겨주며 handle_mm_fault 호출
+	is_loaded = handle_mm_fault(vme);		
 	
-	if(!loaded)
+  //제대로 파일이 물리 메모리에 로드되고 맵핑 되었는지 검사 
+	if(!is_loaded)
 		exit(-1);
 
   /* To implement virtual memory, delete the rest of the function

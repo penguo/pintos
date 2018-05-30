@@ -119,8 +119,11 @@ void vm_destroy_func(struct hash_elem *e, void *aux UNUSED)
 bool load_file(void *kaddr, struct vm_entry *vme)
 {
 
-	//using file_read_at();
-	//writing data at phy-page using file_read_at
+
+	/*Using file_read_at()*/
+	// file_read_at으로 물리페이지에read_bytes만큼 데이터를 쓰고
+	// file_read_at 여부 반환
+
 	if(vme->read_bytes >0)
 	{
 		if(vme->read_bytes != file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset))
@@ -131,13 +134,13 @@ bool load_file(void *kaddr, struct vm_entry *vme)
 	
 	}
 	
-	//padding 0;
+	/* zero_bytes만큼 남는 부분을‘0’으로 패딩*/
 	else
 	{
 		memset(kaddr,0,PGSIZE);
 	}
 
-	//if loading success, return true
+	/*정상적으로 file을 메모리에 loading 하면 true 리턴*/
 	return true;
 }
 
