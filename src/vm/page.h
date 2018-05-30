@@ -41,7 +41,7 @@ bool install_page(void *upage, void *kpage, bool writable);
 
 void vm_init(struct hash *vm);
 static unsigned vm_hash_func(const struct hash_elem *e, void *aux);
-static bool vm_less_func(const struct hash_elem *a, const struct hash_elem *b, void *aux);
+static bool vm_less_func(const struct hash_elem *a, const struct hash_elem *b);
 
 bool insert_vme(struct hash *vm, struct vm_entry *vme);
 bool delete_vme(struct hash *vm, struct vm_entry *vme);

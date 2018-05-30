@@ -9,6 +9,8 @@
 #include <filesys/file.h>
 #include <devices/input.h>
 
+#include <vm/page.h>
+
 static void syscall_handler(struct intr_frame *);
 struct vm_entry *check_address(void *addr, void *esp);
 void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write);

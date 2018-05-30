@@ -750,7 +750,7 @@ static bool
 setup_stack (void **esp) 
 {
   uint8_t *kpage;
-
+  bool success =false;
    // vm_entry 생성
   struct vm_entry *vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
   if(vme == NULL){

@@ -21,7 +21,7 @@ void vm_init(struct hash *vm)
 }
 
 //vm pagenumber hashing
-static unsigned vm_hash_func(const struct hash_elem *e, void *aux)
+static unsigned vm_hash_func(const struct hash_elem *e, void *aux UNUSED)
 {
 	// hash_entry로 element에 대한 vm_entry 구조체 검색
 	struct vm_entry *vme = hash_entry(e, struct vm_entry, elem);
@@ -74,7 +74,6 @@ bool delete_vme(struct hash *vm, struct vm_entry *vme)
 
 struct vm_entry *find_vme(void *vaddr)
 {
-	void *page_num;
 	struct hash_elem *h_elem;
 	struct vm_entry vme;
 
