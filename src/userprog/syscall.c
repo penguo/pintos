@@ -8,26 +8,8 @@
 #include "userprog/process.h"
 #include <filesys/file.h>
 #include <devices/input.h>
-#include "vm/page.h"
 
 
-static void syscall_handler(struct intr_frame *);
-struct vm_entry *check_address(void *addr, void *esp);
-void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write);
-void get_argument(void *esp, int *arg, int count);
-void halt(void);
-void exit(int status);
-tid_t exec(const char *cmd_line);
-bool create(const char *file, unsigned inital_size);
-bool remove(const char *file);
-int wait(tid_t pid);
-int open(const char *file);
-int filesize(int fd);
-int read(int fd, void *buffer, unsigned size);
-int write(int fd, void *buffer, unsigned size);
-void seek(int fd, unsigned position);
-unsigned tell(int fd);
-void close(int fd);
 
 void syscall_init(void)
 {
@@ -246,6 +228,8 @@ syscall_handler(struct intr_frame *f)
 	int arg[5];
 	//	printf("\nsyscall number : %d\n", syscall_num);
 
+	check_address(h_esp, h_esp);
+
 	switch (syscall_num)
 	{
 	case SYS_HALT: // 0
@@ -271,7 +255,7 @@ syscall_handler(struct intr_frame *f)
 
 	case SYS_CREATE:											 // 4
 		get_argument(h_esp, arg, 2);							 //get argument
-		check_valid_string((const void *)arg[0], h_esp);		 //check
+		//check_valid_string((const void *)arg[0], h_esp);		 //check
 		f->eax = create((const char *)arg[0], (unsigned)arg[1]); //get return
 		break;
 
@@ -364,7 +348,10 @@ void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write)
 
 	for (i = 0; i < size; i++)
 	{
+		//주소 유저영역 여부 검사와 vm_entry 획득
 		vme = check_address((void *)l_buffer, esp);
+		
+		//해당 주소에 대한 vm_entry존재 여부와 vm_entry의 writable멤버가 true인지 검사
 		if ((vme != NULL) && to_write)
 			if (!vme->writable)
 				exit(-1);
@@ -374,15 +361,12 @@ void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write)
 
 void check_valid_string(const void *str, void *esp)
 {
+	//str에 대한 vm_entry 존재 여부 확인
 	check_address(str, esp);
-	struct vm_entry *vme = check_address((void *)str, esp);
 
-	while ((char *)str != 0)
+	while (*(char *)str != 0)
 	{
-		if(vme == NULL){
-			exit(-1);
-		}
 		str = (char *)str + 1;
-		// check_valid_ptr(str, esp);
+		check_address(str, esp);
 	}
 }

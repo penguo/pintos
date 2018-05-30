@@ -1,11 +1,17 @@
 #include "vm/page.h"
 #include "threads/thread.h"
 #include "threads/vaddr.h"
+#include "threads/palloc.h"
+#include "threads/malloc.h"
 #include "filesys/file.h"
 #include "userprog/process.h"
+#include "userprog/syscall.h"
+
 #include <hash.h>
 #include <string.h>
 #include <stdio.h>
+
+
 
 //hash table initialize
 void vm_init(struct hash *vm)
@@ -20,6 +26,7 @@ static unsigned vm_hash_func(const struct hash_elem *e, void *aux)
 	// hash_entry로 element에 대한 vm_entry 구조체 검색
 	struct vm_entry *vme = hash_entry(e, struct vm_entry, elem);
 
+	//hash_int()를 이용해서 vm_entry의 멤버 vaddr에 대한 해시값을 구하고 반환
 	return hash_int((int)vme->vaddr);
 }
 
@@ -83,26 +90,29 @@ struct vm_entry *find_vme(void *vaddr)
 	}
 	return hash_entry(h_elem, struct vm_entry, elem);
 }
-/*TODO 320p 요구 페이징 구현에서 활용*/
 
 void vm_destroy(struct hash *vm)
 {
 	hash_destroy(vm, vm_destroy_func);
-	return;
 }
 
 void vm_destroy_func(struct hash_elem *e, void *aux UNUSED)
 {
 	struct vm_entry *vme;
 
+	//hash의 element 획득
 	vme = hash_entry(e, struct vm_entry, elem);
 
+	//load가 되어있는 page의 vm_entry인경우
 	if(vme->is_loaded){
+		
+		//페이지 할당& 매핑 해제
 		palloc_free_page(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
 		pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
 	}
+	//vm_entry 객체 할당 해제
 	free(vme);
-	return;
+	
 }
 
 //ppt 349p after success allocateing phy-memory, load

@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "palloc.h": "c",
+        "file.h": "c"
+    }
+}

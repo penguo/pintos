@@ -77,7 +77,7 @@ start_process (void *file_name_)
   int count = 0;
   char **parse;
 
-	// 해시테이블 초기화
+	//project 3. 해시테이블 초기화
 	vm_init(&thread_current()->vm);
 
 	parse = palloc_get_page(0);
@@ -726,14 +726,15 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       vme->is_loaded = false;
       vme->file = file;
       vme->offset = ofs;
-      vme->read_bytes = read_bytes;
-      vme->zero_bytes = zero_bytes;
+      vme->read_bytes = page_read_bytes;
+      vme->zero_bytes = page_zero_bytes;
       
       // 생성한 vm_entry를 해시테이블에 추가
       bool res = insert_vme(&thread_current()->vm, vme);
       if(!res){ // 실패했을 경우
         return false;
       }
+
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
@@ -749,25 +750,28 @@ static bool
 setup_stack (void **esp) 
 {
   uint8_t *kpage;
-  bool success = false;
-  struct vm_entry *vme;
+
+   // vm_entry 생성
+  struct vm_entry *vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
+  if(vme == NULL){
+    return false;
+  }
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
   {
     success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
     if (success)
+    {
       *esp = PHYS_BASE;
+    }
     else
       palloc_free_page (kpage);
   }
 
-  // vm_entry 생성
-  vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
-  if(vme == NULL){
-    return false;
-  }
+
   // 멤버들 설정
+  vme = malloc(sizeof(struct vm_entry));
   vme->vaddr = ((uint8_t *) PHYS_BASE) - PGSIZE;
   vme->writable = true;
   vme->is_loaded = true;
@@ -778,7 +782,8 @@ setup_stack (void **esp)
     return false;
   }
 
-  return success;
+  return true;
+
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel
