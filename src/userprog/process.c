@@ -700,8 +700,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 static bool
 setup_stack (void **esp) 
 {
-  struct page *kpage;
+  uint8_t *kpage;
   bool success = false;
+  struct vm_entry *vme;
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
@@ -714,17 +715,17 @@ setup_stack (void **esp)
   }
 
   // vm_entry 생성
-  kpage->vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
-  if(kpage->vme == NULL){
+  vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
+  if(vme == NULL){
     return false;
   }
   // 멤버들 설정
-  kpage->vme->vaddr = ((uint8_t *) PHYS_BASE) - PGSIZE;
-  kpage->vme->writable = true;
-  kpage->vme->is_loaded = true;
+  vme->vaddr = ((uint8_t *) PHYS_BASE) - PGSIZE;
+  vme->writable = true;
+  vme->is_loaded = true;
 
   // 해시테이블에 추가
-  bool res = insert_vme(&thread_current()->vm, kpage->vme);
+  bool res = insert_vme(&thread_current()->vm, vme);
   if(!res){ // 실패했을 경우
     return false;
   }
