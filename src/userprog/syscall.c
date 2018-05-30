@@ -374,9 +374,14 @@ void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write)
 void check_valid_string(const void *str, void *esp)
 {
 	check_address(str, esp);
+	struct vm_entry *vme = check_address((void *)str, esp);
+
 	while ((char *)str != 0)
 	{
+		if(vme == NULL){
+			exit(-1);
+		}
 		str = (char *)str + 1;
-		check_valid_ptr(str, esp);
+		// check_valid_ptr(str, esp);
 	}
 }
