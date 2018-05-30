@@ -320,8 +320,7 @@ bool handle_mm_fault(struct vm_entry *vme)
 	}
 
 	//instal page를 이용해서 물리페이지와 가상페이지 맵핑
- if(!install_page(vme->vaddr,kaddr, vme->writable))
-    return false;
+ install_page(vme->vaddr,kaddr, vme->writable);
   
 	vme->is_loaded = true;
 	return true;
@@ -719,7 +718,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       // }
 
       // vm_entry 생성
-      struct vm_entry *vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
+      struct vm_entry *vme = malloc(sizeof(struct vm_entry));
       if(vme == NULL){
         return false;
       }
@@ -755,11 +754,6 @@ setup_stack (void **esp)
 {
   uint8_t *kpage;
   bool success =false;
-   // vm_entry 생성
-  struct vm_entry *vme = (struct vm_entry*)malloc(sizeof(struct vm_entry));
-  if(vme == NULL){
-    return false;
-  }
 
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
@@ -767,27 +761,34 @@ setup_stack (void **esp)
     success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
     if (success)
     {
+			// vm_entry 생성
+			struct vm_entry *vme = malloc(sizeof(struct vm_entry));
+			if(!vme)
+			{
+				palloc_free_page(kpage);
+				success = false;
+			}	
+			else
+			{
+			// 멤버들 설정
+			memset(vme, 0, sizeof(struct vm_entry));
+			vme->vaddr = ((uint8_t *)PHYS_BASE) - PGSIZE;
+			vme->writable = true;
+			vme->is_loaded = true;
+			vme->type = VM_BIN;
+
       *esp = PHYS_BASE;
+				
+		// 해시테이블에 추가
+			insert_vme(&thread_current()->vm, vme);
+
+			}
     }
     else
       palloc_free_page (kpage);
-  }
+}
 
-
-  // 멤버들 설정
-  vme = malloc(sizeof(struct vm_entry));
-  vme->vaddr = ((uint8_t *) PHYS_BASE) - PGSIZE;
-  vme->writable = true;
-  vme->is_loaded = true;
-
-  // 해시테이블에 추가
-  bool res = insert_vme(&thread_current()->vm, vme);
-  if(!res){ // 실패했을 경우
-    return false;
-  }
-
-  return true;
-
+	return success; 
 }
 
 /* Adds a mapping from user virtual address UPAGE to kernel

@@ -156,7 +156,7 @@ page_fault (struct intr_frame *f)
 	
 	if(!not_present)
 	{
-		printf("[%s] : not_pre sys_exit! \n", __func__);
+//		printf("[%s] : not_pre sys_exit! \n", __func__);
 		exit(-1);
 	}
 	//read only 페이지에 대한 접근이 아닐 경우
@@ -166,7 +166,7 @@ page_fault (struct intr_frame *f)
 	
 	if(!vme)
 	{
-		printf("[%s] : vme sys_exit! \n", __func__);
+	//	printf("[%s] : vme sys_exit! \n", __func__);
 		exit(-1);
 	}
 //vm_entry를 인자로 넘겨주며 handle_mm_fault 호출
@@ -175,7 +175,7 @@ page_fault (struct intr_frame *f)
   //제대로 파일이 물리 메모리에 로드되고 맵핑 되었는지 검사 
 	if(!is_loaded)
 	{
-		printf("[%s] : is loaded sys_exit \n " , __func__);
+//		printf("[%s] : is loaded sys_exit \n " , __func__);
 		exit(-1);
 	}
   /* To implement virtual memory, delete the rest of the function
