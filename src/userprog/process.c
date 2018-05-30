@@ -294,11 +294,12 @@ bool handle_mm_fault(struct vm_entry *vme)
 	if(vme->is_loaded)
 		return false;
 
-	//using palloc_Get_page, allocating physical memory
+  /* palloc_get_page()를 이용해서 물리 메모리 할당*/
 	page = palloc_get_page(0);
 	page->vme = vme;
 	kaddr = page->kaddr;
 	
+  //switch문으로 vm_entry의 타입별 처리
 	switch(vme->type)
 	{
 	case VM_BIN:
@@ -315,9 +316,10 @@ bool handle_mm_fault(struct vm_entry *vme)
 		return false;
 	}
 
-	//using install_page, mapping physical and virtual page
- install_page(vme->vaddr,kaddr, vme->writable);
-
+	//instal page를 이용해서 물리페이지와 가상페이지 맵핑
+ if(!install_page(vme->vaddr,kaddr, vme->writable))
+    return false;
+  
 	vme->is_loaded = true;
 	return true;
 }
