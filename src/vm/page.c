@@ -105,3 +105,25 @@ void vm_destroy_func(struct hash_elem *e, void *aux)
 	free(vme);
 	return;
 }
+
+//ppt 349p after success allocateing phy-memory, load
+bool load_file(void *kaddr, struct vm_entry *vme)
+{
+
+	//using file_read_at();
+	//writing data at phy-page using file_read_at
+	//return file_read_at
+	//padding 0;
+	//if loading success, return true
+	if(vme->read_bytes >0)
+	{
+		
+
+	
+	
+	}
+
+
+}
+
+

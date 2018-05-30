@@ -10,6 +10,7 @@ struct vm_entry
 	void *vaddr;	/* vm_entry의 가상페이지 번호 */
 	bool writable;  /* True일 경우 해당 주소에 write 가능		 False일 경우 해당 주소에 write 불가능 */
 	bool is_loaded; /* 물리메모리의 탑재 여부를 알려주는 플래그 */
+  bool pinned;
 
 	struct file *file; /* 가상주소와 맵핑된 파일 */
 
@@ -27,6 +28,17 @@ struct vm_entry
 	struct hash_elem elem; /* 해시 테이블 Element */
 };
 /*TODO 308p*/
+
+struct page
+{
+	void *kaddr;
+	struct vm_entry *vme;
+	struct thread * thread;
+	struct list_elem lru;
+
+};
+
+
 
 void vm_init(struct hash *vm);
 static unsigned vm_hash_func(const struct hash_elem *e, void *aux);

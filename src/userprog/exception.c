@@ -4,6 +4,9 @@
 #include "userprog/gdt.h"
 #include "threads/interrupt.h"
 #include "threads/thread.h"
+#include "vm/page.h"
+#include "syscall.h"
+#include "threads/vaddr.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -148,17 +151,47 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
 	
-	//에러메세지 출력 방지
+ //after search vm_entry, page allocate(345p)
+	bool load = false;
+
+if(user)
+{
+
+	if(not_present)
+	{
+		struct vm_entry *vme = find_vme(fault_addr);
+		if(vme)
+		{
+			if(write && (vme->writable == 0))
+				exit(-1);
+			vme->pinned = true;
+			load = handle_mm_fault(vme);
+			vme->pinned = false;
+		
+		}
+		else if(fault_addr >= f->esp -32)
+			load = expand_stack(fault_addr);
+	}
+ else
 	exit(-1);
+}
+//	exit(-1);
 
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
+
+	if(!load)
+	{
+	printf ("Page fault at %p: %s error %s page in %s context.\n",
           fault_addr,
           not_present ? "not present" : "rights violation",
           write ? "writing" : "reading",
           user ? "user" : "kernel");
-  kill (f);
+  kill (f); 
+
+
+	}
+
 }
 

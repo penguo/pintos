@@ -24,6 +24,8 @@
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
 void argument_stack(char **parse, int count, void **esp); 
+bool handle_mm_fault(struct vm_entry *vme);
+bool install_page(void *upage, void *kpage, bool writable);
 
 /* Starts a new thread running a user program loaded from
    FILENAME.  The new thread may be scheduled (and may even exit)
@@ -277,6 +279,52 @@ remove_child_process (struct thread *cp){
 	//메모리 해제 
 	palloc_free_page(cp);
 }
+
+
+//348p
+bool handle_mm_fault(struct vm_entry *vme)
+{
+	
+	struct page *page;
+	
+	bool load_success = false;
+
+	void *kaddr;
+
+	if(vme->is_loaded)
+		return false;
+
+	//using palloc_Get_page, allocating physical memory
+	page = palloc_get_page(0);
+	page->vme = vme;
+	kaddr = page->kaddr;
+	
+	switch(vme->type)
+	{
+	case VM_BIN:
+		load_success = load_file(kaddr, vme);
+		break;
+	
+	default:
+		break;
+	}
+
+	if(!load_success)
+	{
+		free_page(page);
+		return false;
+	}
+
+	//using install_page, mapping physical and virtual page
+ install_page(vme->vaddr,kaddr, vme->writable);
+
+	vme->is_loaded = true;
+	return true;
+}
+
+
+
+
 
 int
 process_wait (tid_t child_tid) 
@@ -565,7 +613,7 @@ printf ("load: %s: error loading executable\n", file_name);
 
 /* load() helpers. */
 
-static bool install_page (void *upage, void *kpage, bool writable);
+// bool install_page (void *upage, void *kpage, bool writable);
 
 /* Checks whether PHDR describes a valid, loadable segment in
    FILE and returns true if so, false otherwise. */
@@ -742,7 +790,8 @@ setup_stack (void **esp)
    with palloc_get_page().
    Returns true on success, false if UPAGE is already mapped or
    if memory allocation fails. */
-static bool
+//static
+bool
 install_page (void *upage, void *kpage, bool writable)
 {
   struct thread *t = thread_current ();
