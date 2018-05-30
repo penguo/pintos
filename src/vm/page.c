@@ -1,5 +1,6 @@
 #include "vm/page.h"
 #include "threads/thread.h"
+#include "threads/vaddr.h"
 #include "filesys/file.h"
 #include "userprog/process.h"
 #include <hash.h>
