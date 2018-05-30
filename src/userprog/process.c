@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <hash.h>
+#include <stdbool.h>
 #include "userprog/gdt.h"
 #include "userprog/pagedir.h"
 #include "userprog/tss.h"
@@ -17,8 +19,8 @@
 #include "threads/thread.h"
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
-
 #include "vm/page.h"
+
 
 #define MAX_FILE 256
 static thread_func start_process NO_RETURN;
@@ -78,6 +80,7 @@ start_process (void *file_name_)
   char **parse;
 
 	//project 3. 해시테이블 초기화
+//	printf("vm_init \n");
 	vm_init(&thread_current()->vm);
 
 	parse = palloc_get_page(0);
@@ -732,11 +735,10 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       vme->zero_bytes = page_zero_bytes;
       
       // 생성한 vm_entry를 해시테이블에 추가
-      bool res = insert_vme(&thread_current()->vm, vme);
-      if(!res){ // 실패했을 경우
-        return false;
-      }
-
+   //  printf("before insert_vme\n");i
+		insert_vme(&thread_current()->vm, vme);
+		 
+	 //  printf("%d, success\n", ret);
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;

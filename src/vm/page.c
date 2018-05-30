@@ -6,19 +6,20 @@
 #include "filesys/file.h"
 #include "userprog/process.h"
 #include "userprog/syscall.h"
+#include "threads/interrupt.h"
+#include "threads/malloc.h"
+#include "threads/palloc.h"
+#include "threads/thread.h"
+#include "threads/vaddr.h"
+#include "userprog/process.h"
+#include "userprog/syscall.h"
+#include "vm/page.h"
 
 #include <hash.h>
 #include <string.h>
 #include <stdio.h>
+#include <stdbool.h>
 
-
-
-//hash table initialize
-void vm_init(struct hash *vm)
-{
-	// 해시테이블 초기화
-	hash_init(vm, vm_hash_func, vm_less_func, NULL);
-}
 
 //vm pagenumber hashing
 static unsigned vm_hash_func(const struct hash_elem *e, void *aux UNUSED)
@@ -44,6 +45,27 @@ static bool vm_less_func(const struct hash_elem *a, const struct hash_elem *b)
 		return false;
 }
 
+
+static void vm_destroy_func(struct hash_elem *e, void *aux)
+{
+   struct vm_entry *vme;
+ 
+   //hash의 element 획득
+   vme = hash_entry(e, struct vm_entry, elem);
+	
+	//load가 되어있는 page의 vm_entry인경우
+	if(vme->is_loaded){
+      //페이지 할당& 매핑 해제
+     palloc_free_page(pagedir_get_page(thread_current()->pagedir,     vme->vaddr));
+     pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
+   }
+   //vm_entry 객체 할당 해제
+   free(vme); 
+}
+
+
+
+
 //insert entry
 bool insert_vme(struct hash *vm, struct vm_entry *vme)
 {
@@ -51,10 +73,10 @@ bool insert_vme(struct hash *vm, struct vm_entry *vme)
 
 	h_elem = hash_insert(vm, &vme->elem);
 
-	if(h_elem != NULL){
-		return false;
-	}
-	return true;
+	if(!h_elem)
+		return true;
+	
+	return false;
 }
 
 //delete entry
@@ -64,7 +86,7 @@ bool delete_vme(struct hash *vm, struct vm_entry *vme)
 
 	h_elem = hash_delete(vm, &vme->elem);
 	
-	if(h_elem == NULL){
+	if(!h_elem){
 		return false;
 	}
 	return true;
@@ -79,15 +101,17 @@ struct vm_entry *find_vme(void *vaddr)
 
 	// vaddr의 페이지 번호를 얻음
 	vme.vaddr = pg_round_down(vaddr);
-
 	// hash_elem 구조체 얻음
 	//struct hash_elem *hash_find (struct hash *, struct hash_elem *);
 	h_elem = hash_find(&thread_current()->vm, &vme.elem);
+	
 
-	if(h_elem == NULL){ // 존재하지 않는다면 NULL 리턴
+	if(!h_elem){ // 존재하지 않는다면 NULL 리턴
+	//	printf("h_elem ==NULL \n");
 		return NULL;
 	}
 	return hash_entry(h_elem, struct vm_entry, elem);
+
 }
 
 void vm_destroy(struct hash *vm)
@@ -95,23 +119,9 @@ void vm_destroy(struct hash *vm)
 	hash_destroy(vm, vm_destroy_func);
 }
 
-void vm_destroy_func(struct hash_elem *e, void *aux UNUSED)
+void vm_init(struct hash  *vm)
 {
-	struct vm_entry *vme;
-
-	//hash의 element 획득
-	vme = hash_entry(e, struct vm_entry, elem);
-
-	//load가 되어있는 page의 vm_entry인경우
-	if(vme->is_loaded){
-		
-		//페이지 할당& 매핑 해제
-		palloc_free_page(pagedir_get_page(thread_current()->pagedir, vme->vaddr));
-		pagedir_clear_page(thread_current()->pagedir, vme->vaddr);
-	}
-	//vm_entry 객체 할당 해제
-	free(vme);
-	
+	hash_init(vm, vm_hash_func, vm_less_func, NULL);
 }
 
 //ppt 349p after success allocateing phy-memory, load
@@ -125,10 +135,13 @@ bool load_file(void *kaddr, struct vm_entry *vme)
 
 	if(vme->read_bytes >0)
 	{
-		if(vme->read_bytes != file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset))
+		lock_acquire(&filesys_lock);
+		if((int)vme->read_bytes != file_read_at(vme->file, kaddr, vme->read_bytes, vme->offset))
 		{		
+			lock_release(&filesys_lock);
 			return false;
 		}
+		lock_release(&filesys_lock);
 		memset(kaddr+vme->read_bytes,0,vme->zero_bytes);
 	
 	}

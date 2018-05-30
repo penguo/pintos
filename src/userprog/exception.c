@@ -155,23 +155,29 @@ page_fault (struct intr_frame *f)
  //after search vm_entry, page allocate(345p)
 	
 	if(!not_present)
+	{
+		printf("[%s] : not_pre sys_exit! \n", __func__);
 		exit(-1);
-
+	}
 	//read only 페이지에 대한 접근이 아닐 경우
   //페이지폴트가 일어난 주소에 대한 vm entry구조체 탐색 
 	bool is_loaded = false;
 	struct vm_entry *vme = find_vme(fault_addr);
 	
 	if(!vme)
+	{
+		printf("[%s] : vme sys_exit! \n", __func__);
 		exit(-1);
-
+	}
 //vm_entry를 인자로 넘겨주며 handle_mm_fault 호출
 	is_loaded = handle_mm_fault(vme);		
 	
   //제대로 파일이 물리 메모리에 로드되고 맵핑 되었는지 검사 
 	if(!is_loaded)
+	{
+		printf("[%s] : is loaded sys_exit \n " , __func__);
 		exit(-1);
-
+	}
   /* To implement virtual memory, delete the rest of the function
      body, and replace it with code that brings in the page to
      which fault_addr refers. */

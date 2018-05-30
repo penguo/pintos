@@ -131,7 +131,7 @@ hash_replace (struct hash *h, struct hash_elem *new)
 struct hash_elem *
 hash_find (struct hash *h, struct hash_elem *e) 
 {
-  return find_elem (h, find_bucket (h, e), e);
+	return find_elem (h, find_bucket (h, e), e);
 }
 
 /* Finds, removes, and returns an element equal to E in hash
@@ -322,6 +322,7 @@ find_elem (struct hash *h, struct list *bucket, struct hash_elem *e)
       if (!h->less (hi, e, h->aux) && !h->less (e, hi, h->aux))
         return hi; 
     }
+//	printf("find_elem fail\n");	
   return NULL;
 }
 

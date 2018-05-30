@@ -2,6 +2,8 @@
 #define VM_PAGE_H
 
 #include <hash.h>
+#include <list.h>
+#include <threads/synch.h>
 
 #define VM_BIN 0  /*binary file - elf format*/
 #define VM_FILE 1 /*ordinary file*/
@@ -40,8 +42,6 @@ struct page
 bool install_page(void *upage, void *kpage, bool writable);
 
 void vm_init(struct hash *vm);
-static unsigned vm_hash_func(const struct hash_elem *e, void *aux);
-static bool vm_less_func(const struct hash_elem *a, const struct hash_elem *b);
 
 bool insert_vme(struct hash *vm, struct vm_entry *vme);
 bool delete_vme(struct hash *vm, struct vm_entry *vme);
@@ -49,11 +49,8 @@ bool delete_vme(struct hash *vm, struct vm_entry *vme);
 struct vm_entry *find_vme(void *vaddr);
 
 void vm_destroy(struct hash *vm);
-void vm_destroy_func(struct hash_elem *e, void *aux);
 
-static bool setup_stack(void **esp);
-
-void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write);
+bool handle_mm_fault(struct vm_entry *vme);
 
 bool load_file(void *kaddr, struct vm_entry *vme);
 
