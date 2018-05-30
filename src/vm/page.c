@@ -76,10 +76,10 @@ struct vm_entry *find_vme(void *vaddr)
 	// hash_elem 구조체 얻음
 	//struct hash_elem *hash_find (struct hash *, struct hash_elem *);
 	vme->vaddr = page_num;
-	h_elem = hash_find(&thread->current()->vm, &vme->elem);
+	h_elem = hash_find(&thread_current()->vm, &vme->elem);
 
 	if(h_elem == NULL){ // 존재하지 않는다면 NULL 리턴
-		return NULL
+		return NULL;
 	}
 	return hash_entry(h_elem, struct vm_entry, elem);
 }
