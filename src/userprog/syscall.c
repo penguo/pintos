@@ -148,9 +148,7 @@ int read(int fd, void *buffer, unsigned size)
 {
 
 	//파일 디스크립터를 이용하여 파일 객체 검색
-	struct file *f = process_get_file(fd);
 	int i;
-	int bytes;
 
 	//파일 디스크립터가 1인 경우
 	if (fd == 1)
@@ -173,6 +171,8 @@ int read(int fd, void *buffer, unsigned size)
 
 	//lock 사용하여 동시 접근 방지
 	lock_acquire(&filesys_lock);
+	struct file *f = process_get_file(fd);
+	int bytes;
 
 	if (f == NULL)
 	{
@@ -453,7 +453,12 @@ int mmap(int fd, void *addr)
 	int mapid;
 	off_t ofs = 0;
 
-	if (!old_f || !is_user_vaddr(addr) || ((int)addr % PGSIZE != 0) || addr < 0x08048000)
+	if (old_f == NULL
+	|| !is_user_vaddr(addr)
+	|| ((int)addr % PGSIZE != 0)
+	|| addr < 0x08048000
+	|| addr == 0
+	|| file_length(file == 0))
 	{
 		return -1;
 	}
