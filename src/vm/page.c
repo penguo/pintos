@@ -1,8 +1,3 @@
-#include "vm/page.h"
-#include "threads/thread.h"
-#include "threads/vaddr.h"
-#include "threads/palloc.h"
-#include "threads/malloc.h"
 #include "filesys/file.h"
 #include "userprog/process.h"
 #include "userprog/syscall.h"

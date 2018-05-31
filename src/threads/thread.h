@@ -153,6 +153,8 @@ struct thread
 		//프로그램 파일을 가리키는 파일 구조체 포인터
 		struct file *exec_file;
 
+    struct list mmap_list;
+    int mapid;
 	};
 
 //실행중인 thread sleep
