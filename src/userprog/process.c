@@ -503,8 +503,6 @@ bool load(const char *file_name, void (**eip)(void), void **esp)
   file = filesys_open(file_name);
   if (file == NULL)
   {
-    //lock 해제
-    lock_release(&filesys_lock);
     printf("load: %s: open failed\n", file_name);
     goto done;
   }
@@ -514,9 +512,6 @@ bool load(const char *file_name, void (**eip)(void), void **esp)
 
   //file_deny-write를 이용하여 파일에 대한 write 거부
   file_deny_write(file);
-
-  //lock 해제
-  lock_release(&filesys_lock);
 
   /* Read and verify executable header. */
   if (file_read(file, &ehdr, sizeof ehdr) != sizeof ehdr || memcmp(ehdr.e_ident, "\177ELF\1\1\1", 7) || ehdr.e_type != 2 || ehdr.e_machine != 3 || ehdr.e_version != 1 || ehdr.e_phentsize != sizeof(struct Elf32_Phdr) || ehdr.e_phnum > 1024)
@@ -593,6 +588,8 @@ bool load(const char *file_name, void (**eip)(void), void **esp)
   success = true;
 
 done:
+  //lock 해제
+  lock_release(&filesys_lock);
   /* We arrive here whether the load is successful or not. */
   //  file_close (file);
   return success;

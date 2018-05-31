@@ -116,7 +116,10 @@ int open(const char *file)
 
 	//해당 파일이 존재하지 않을 시 -1 리턴
 	if (f == NULL)
+	{
+		lock_release(&filesys_lock);
 		return -1;
+	}
 
 	//해당 파일 객체에 파일 디스크립터 부여
 	fd = process_add_file(f);
@@ -247,11 +250,11 @@ void seek(int fd, unsigned position)
 	lock_release(&filesys_lock);
 }
 
-unsigned tell (int fd)
+unsigned tell(int fd)
 {
 	lock_acquire(&filesys_lock);
 	struct file *f = process_get_file(fd);
-	if(!f)
+	if (!f)
 	{
 		lock_release(&filesys_lock);
 		return -1;
