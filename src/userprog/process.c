@@ -300,7 +300,7 @@ bool handle_mm_fault(struct vm_entry *vme)
   /* palloc_get_page()를 이용해서 물리 메모리 할당*/
 	page = palloc_get_page(0);
 	page->vme = vme;
-	kaddr = page->kaddr;
+	kaddr = page;
 	
   //switch문으로 vm_entry의 타입별 처리
 	switch(vme->type)
