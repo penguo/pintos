@@ -307,8 +307,8 @@ syscall_handler(struct intr_frame *f)
 		f->eax = wait(arg[0]); //return int
 		break;
 
-	case SYS_CREATE:				 // 4
-		get_argument(h_esp, arg, 2); //get argument
+	case SYS_CREATE:											 // 4
+		get_argument(h_esp, arg, 2);							 //get argument
 		check_valid_string((const void *)arg[0], h_esp);		 //check
 		f->eax = create((const char *)arg[0], (unsigned)arg[1]); //get return
 		break;
@@ -396,12 +396,7 @@ struct vm_entry *check_address(void *addr, void *esp)
 		exit(-1);
 
 	struct vm_entry *vme = find_vme(addr);
-	if (!vme)
-		exit(-1);
-	else
-	{
-		return vme;
-	}
+	return vme;
 }
 
 void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write)
@@ -448,20 +443,18 @@ void check_valid_string(const void *str, void *esp)
 int mmap(int fd, void *addr)
 {
 	struct mmap_file *m_file;
-	struct file *old_f = process_get_file(fd);
-	struct file *file;
+	struct file *old_f, *file;
 	int mapid;
 	off_t ofs = 0;
 
-	if (old_f == NULL
-	|| !is_user_vaddr(addr)
-	|| ((int)addr % PGSIZE != 0)
-	|| addr < 0x08048000
-	|| addr == 0
-	|| file_length(file == 0))
-	{
+	old_f = process_get_file(fd);
+
+	if ((old_f == NULL) || (((int)addr % PGSIZE) != 0) || (addr == 0) || (file_length(old_f) == 0))
 		return -1;
-	}
+
+	//check_address
+	if (!is_user_vaddr(addr) || (addr < (void *)0x08048000))
+		return -1;
 
 	file = file_reopen(old_f);
 	//mmap구조체 생성
