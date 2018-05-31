@@ -3,6 +3,7 @@
 
 #include "threads/synch.h"
 
+#define CLOSE_ALL -1 
 //락 선언
 struct lock filesys_lock;
 void syscall_init (void);

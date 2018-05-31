@@ -310,6 +310,7 @@ bool handle_mm_fault(struct vm_entry *vme)
 	case VM_FILE:
 		load_success = load_file(kaddr, vme);
 		break;	
+	
 	default:
 		break;
 	}
@@ -386,7 +387,7 @@ process_exit (void)
 
 
   //프로세스 종료 시 vm_entry들을 제거
-	munmap(-1);
+	munmap(CLOSE_ALL);
 	vm_destroy(&cur->vm);
 
 	pd = cur->pagedir;
