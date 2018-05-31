@@ -287,7 +287,6 @@ remove_child_process (struct thread *cp){
 //348p
 bool handle_mm_fault(struct vm_entry *vme)
 {
-	
 	struct page *page;
 	
 	bool load_success = false;

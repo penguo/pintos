@@ -11,10 +11,13 @@
 
 
 #include "vm/page.h"
+#include "userprog/pagedir.h"
+#include "threads/vaddr.h"
 
 static void syscall_handler(struct intr_frame *);
 struct vm_entry *check_address(void *addr, void *esp);
 void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write);
+void check_valid_string(const void *str, void *esp);
 void get_argument(void *esp, int *arg, int count);
 void halt(void);
 void exit(int status);
@@ -29,6 +32,8 @@ int write(int fd, void *buffer, unsigned size);
 void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
+int mmap(int fd, void *addr);
+void munmap(int mapid);
 
 void syscall_init(void)
 {
@@ -281,7 +286,7 @@ syscall_handler(struct intr_frame *f)
 	case SYS_REMOVE: // 5
 		get_argument(h_esp, arg, 1);
 		check_valid_string((const void *)arg[0], h_esp); //check
-		f->eax = remove(arg[0]);
+		f->eax = remove((const void *)arg[0]);
 		break;
 
 	case SYS_OPEN: // 6
@@ -320,6 +325,16 @@ syscall_handler(struct intr_frame *f)
 	case SYS_CLOSE: // 12
 		get_argument(h_esp, arg, 1);
 		close(arg[0]);
+		break;
+
+	case SYS_MMAP:
+		get_argument(h_esp, arg, 2);
+		f->eax = mmap(arg[0], (void *) arg[1]);
+		break;
+
+	case SYS_MUNMAP:
+		get_argument(h_esp,arg, 1);
+		munmap(arg[0]);
 		break;
 
 	default:
@@ -381,11 +396,141 @@ void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write)
 void check_valid_string(const void *str, void *esp)
 {
 	//str에 대한 vm_entry 존재 여부 확인
-	check_address(str, esp);
+	struct vm_entry *vme = check_address(str, esp);
 
 	while (*(char *)str != 0)
 	{
+		if (vme == NULL)
+		{
+			exit(-1);
+		}
 		str = (char *)str + 1;
-		check_address(str, esp);
+		vme = check_address(str, esp);
+	}
+}
+
+/* mmap
+	fd: 프로세스의 가상 주소공간에 매핑할 파일
+	addr: 매핑을 시작할 주소(page 단위 정렬)
+	성공 시 mapping id를 리턴, 실패 시 에러코드(-1) 리턴
+	요구페이징에 의해 파일 데이터를 메모리로 로드
+	*/
+int mmap(int fd, void *addr)
+{
+	struct file *f = process_get_file(fd);
+	struct file *rf;
+	struct mmap_file *mf;
+	static int mapid = 0;
+	//TODO error 뜸
+	if (!f || !addr || ((int)addr % 4096 == 0) || (int)addr < 0)
+	{
+		return -1;
+	}
+	rf = file_reopen(f);
+	mf = (struct mmap_file *)malloc(sizeof(struct mmap_file));
+	mf->mapid = mapid++;
+	mf->file = rf;
+
+	// load_segment에서 한 것처럼
+	off_t ofs = 0;
+	uint32_t read_bytes = file_length(rf);
+	while (read_bytes > 0)
+	{
+        size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+        size_t page_zero_bytes = PGSIZE - page_read_bytes;
+		bool res = false;
+		struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
+		
+		// vme 내용들 초기화;
+        vme->type = VM_FILE;
+        vme->vaddr = addr;
+        vme->writable = true;
+        vme->is_loaded = true;
+		vme->file = rf;
+		vme->offset = ofs;
+		vme->read_bytes = page_read_bytes;
+		vme->zero_bytes = page_zero_bytes;
+
+        list_push_back(&mf->vme_list, &vme->mmap_elem);
+        // hash vm에 삽입
+        res = insert_vme(&thread_current()->vm, vme);
+		if(!res)
+            return -1;
+
+        read_bytes -= page_read_bytes;
+        ofs += page_read_bytes;
+        addr += PGSIZE;
+	}
+    list_push_back(&thread_current()->mmap_list, &mf->elem);
+	return mf->mapid;
+}
+
+void munmap(int mapid)
+{
+	struct thread *t = thread_current();
+	struct list_elem *next;
+	struct list_elem *e = list_begin(&t->mmap_list);
+
+	//mmap_list 순회
+	while(e != list_end(&t->mmap_list))
+	{
+		next = list_next(e);
+		struct mmap_file *m = list_entry(e, struct mmap_file, elem);
+		//mmap 내부의 vme list
+			//mapid가 같은 경우 vm_entry 해제
+		if(m->mapid == mapid)
+		{
+			do_munmap(m);
+		}
+//		else if(mapid == CLOSE_ALL)
+//		{
+//			do_munmap(m);
+//		}
+		e = next;
+	}
+
+}
+
+void do_munmap(struct mmap_file* mmap_file)
+{
+	struct thread *t = thread_current();
+	struct vm_entry *vme_next;
+	struct vm_entry *vme = list_begin(&mmap_file->vme_list);
+	//vme list 순회
+	while(vme != list_end(&mmap_file->vme_list))
+	{
+		//vm_entry가 물리 페이지와 load되어 있다면
+		if(vme->is_loaded)
+		{
+			//dirty bit 검사 pagedir.c
+			if(pagedir_is_dirty(t->pagedir, vme->vaddr))
+			{
+				//lock
+				lock_acquire(&filesys_lock);
+				//file write
+				file_write_at(vme->file,vme->vaddr,vme->read_bytes, vme->offset);
+				lock_release(&filesys_lock);
+			}
+			//TODO pagedir_get_page(t->pagedir, vme->vaddr); 페이지 할당 해제해줘야 하는데..
+		//page clear
+		pagedir_clear_page(t->pagedir, vme->vaddr);
+		//mmap_list에서 제거
+		list_remove(&mmap_file->elem);
+		//file close 처리
+		if(mmap_file->mapid != 0)
+		{
+			if(mmap_file->file)
+			{
+				lock_acquire(&filesys_lock);
+				file_close(mmap_file->file);
+				lock_release(&filesys_lock);
+			}
+		}
+		//vme와 mmap을 할당 해제
+		free(vme);
+		free(mmap_file);
+
+		}
+		vme = vme_next;
 	}
 }
