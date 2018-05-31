@@ -309,7 +309,7 @@ syscall_handler(struct intr_frame *f)
 
 	case SYS_CREATE:				 // 4
 		get_argument(h_esp, arg, 2); //get argument
-		//check_valid_string((const void *)arg[0], h_esp);		 //check
+		check_valid_string((const void *)arg[0], h_esp);		 //check
 		f->eax = create((const char *)arg[0], (unsigned)arg[1]); //get return
 		break;
 
