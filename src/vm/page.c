@@ -99,7 +99,7 @@ struct vm_entry *find_vme(void *vaddr)
 	
 	if(!h_elem){ // 존재하지 않는다면 NULL 리턴
 	//	printf("h_elem ==NULL \n");
-		printf("vm/page.c - find_vme error\n");
+//		printf("vm/page.c - find_vme error\n");
 		return NULL;
 	}
 	
