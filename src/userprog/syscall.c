@@ -278,8 +278,8 @@ syscall_handler(struct intr_frame *f)
 		f->eax = wait(arg[0]); //return int
 		break;
 
-	case SYS_CREATE:											 // 4
-		get_argument(h_esp, arg, 2);							 //get argument
+	case SYS_CREATE:				 // 4
+		get_argument(h_esp, arg, 2); //get argument
 		//check_valid_string((const void *)arg[0], h_esp);		 //check
 		f->eax = create((const char *)arg[0], (unsigned)arg[1]); //get return
 		break;
@@ -330,11 +330,11 @@ syscall_handler(struct intr_frame *f)
 
 	case SYS_MMAP:
 		get_argument(h_esp, arg, 2);
-		f->eax = mmap(arg[0], (void *) arg[1]);
+		f->eax = mmap(arg[0], (void *)arg[1]);
 		break;
 
 	case SYS_MUNMAP:
-		get_argument(h_esp,arg, 1);
+		get_argument(h_esp, arg, 1);
 		munmap(arg[0]);
 		break;
 
@@ -385,7 +385,7 @@ void check_valid_buffer(void *buffer, unsigned size, void *esp, bool to_write)
 	{
 		//주소 유저영역 여부 검사와 vm_entry 획득
 		vme = check_address((void *)l_buffer, esp);
-		
+
 		//해당 주소에 대한 vm_entry존재 여부와 vm_entry의 writable멤버가 true인지 검사
 		if ((vme != NULL) && to_write)
 			if (!vme->writable)
@@ -448,103 +448,97 @@ int mmap(int fd, void *addr)
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		struct vm_entry *vme = malloc(sizeof(struct vm_entry));
-	
-		if(!vme)
+
+		if (!vme)
 			return -1;
 
 		// vme 초기화;
-    vme->type = VM_FILE;
-    vme->vaddr = addr;
-    vme->writable = true;
-    vme->is_loaded = false;
+		vme->type = VM_FILE;
+		vme->vaddr = addr;
+		vme->writable = true;
+		vme->is_loaded = false;
 		vme->file = file;
 		vme->offset = ofs;
 		vme->read_bytes = page_read_bytes;
 		vme->zero_bytes = page_zero_bytes;
 
-        list_push_back(&m_file->vme_list, &vme->mmap_elem);
-        // hash vm에 삽입
-        insert_vme(&thread_current()->vm, vme);
-            
-        read_bytes -= page_read_bytes;
-        ofs += page_read_bytes;
-        addr += PGSIZE;
+		list_push_back(&m_file->vme_list, &vme->mmap_elem);
+		// hash vm에 삽입
+		insert_vme(&thread_current()->vm, vme);
+
+		read_bytes -= page_read_bytes;
+		ofs += page_read_bytes;
+		addr += PGSIZE;
 	}
-    list_push_back(&thread_current()->mmap_list, &m_file->elem);
+	list_push_back(&thread_current()->mmap_list, &m_file->elem);
 	return m_file->mapid;
 }
 
 void munmap(int mapping)
 {
 	struct thread *t = thread_current();
-	struct list_elem *next;
 	struct list_elem *e = list_begin(&t->mmap_list);
-	printf("munmap 1\n");
 	//mmap_list 순회
-	while(e != list_end(&t->mmap_list))
+	while (e != list_end(&t->mmap_list))
 	{
-		printf("munmap 2\n");
 		struct mmap_file *m_file = list_entry(e, struct mmap_file, elem);
-		next = list_next(e);	
+		
 		//mmap_list내에서 mapping에 해당하는 mapid를 갖는 모든 vm_entry을 해제
 		//인자로 넘겨진 mapping값이 CLOSE_ALL인경우 모든 파일매핑을 제거
 		//매핑 제거 시 do_munmap()함수호출
-		if(m_file->mapid == mapping || mapping == CLOSE_ALL)
+		if (m_file->mapid == mapping || mapping == CLOSE_ALL)
 		{
 			do_munmap(m_file);
 			list_remove(&m_file->elem);
 			free(m_file);
-			if(mapping != CLOSE_ALL)
+			if (mapping != CLOSE_ALL)
 				break;
 		}
-		e = next;
+		e = list_next(e);
 	}
-	printf("munmap 3\n");
-
 }
 
-void do_munmap(struct mmap_file* mmap_file)
+void do_munmap(struct mmap_file *mmap_file)
 {
 	struct thread *t = thread_current();
 	struct list_elem *next;
 	struct list_elem *e = list_begin(&mmap_file->vme_list);
 	struct file *f = mmap_file->file;
 	//vme list 순회
-	
-	while(e != list_end(&mmap_file->vme_list))
+
+	while (e != list_end(&mmap_file->vme_list))
 	{
 		struct vm_entry *vme = list_entry(e, struct vm_entry, mmap_elem);
 
 		//vm_entry가 물리 페이지와 load되어 있다면
-		if(vme->is_loaded)
+		if (vme->is_loaded)
 		{
 			//dirty bit 검사 pagedir.c
-			if(pagedir_is_dirty(t->pagedir, vme->vaddr))
+			if (pagedir_is_dirty(t->pagedir, vme->vaddr))
 			{
 				//lock
 				lock_acquire(&filesys_lock);
 				//file write
-				file_write_at(vme->file,vme->vaddr,vme->read_bytes, vme->offset);
+				file_write_at(vme->file, vme->vaddr, vme->read_bytes, vme->offset);
 				lock_release(&filesys_lock);
 			}
-	
-		// pagedir_get_page(t->pagedir, vme->vaddr);
-		palloc_free_page(pagedir_get_page(t->pagedir, vme->vaddr));
-		//page clear
-		pagedir_clear_page(t->pagedir, vme->vaddr);
-		
+
+			// pagedir_get_page(t->pagedir, vme->vaddr);
+			palloc_free_page(pagedir_get_page(t->pagedir, vme->vaddr));
+			//page clear
+			pagedir_clear_page(t->pagedir, vme->vaddr);
 		}
-	
-	//mmap_list에서 제거
+
+		//mmap_list에서 제거
 		list_remove(&vme->mmap_elem);
 		delete_vme(&t->vm, vme);
-	
+
 		free(vme);
 
 		e = next;
 	}
 	//file close 처리
-/*	if(f)
+	/*	if(f)
 	{
 		lock_acquire(&filesys_lock);
 		file_close(f);
