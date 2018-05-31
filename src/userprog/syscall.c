@@ -418,13 +418,12 @@ void check_valid_string(const void *str, void *esp)
 	*/
 int mmap(int fd, void *addr)
 {
-
 	struct mmap_file *m_file;
 	struct file *old_f = process_get_file(fd);
 	struct file *file;
 	int mapid;
 	off_t ofs = 0;
-	//TODO error 뜸
+
 	if (!old_f || !is_user_vaddr(addr) || ((int)addr % PGSIZE != 0) || addr < 0x08048000)
 	{
 		return -1;
@@ -441,7 +440,6 @@ int mmap(int fd, void *addr)
 	m_file->mapid = mapid;
 	m_file->file = file;
 
-	
 	uint32_t read_bytes = file_length(file);
 
 	while (read_bytes > 0)
@@ -450,7 +448,7 @@ int mmap(int fd, void *addr)
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		struct vm_entry *vme = malloc(sizeof(struct vm_entry));
-		
+	
 		if(!vme)
 			return -1;
 
@@ -481,10 +479,11 @@ void munmap(int mapping)
 	struct thread *t = thread_current();
 	struct list_elem *next;
 	struct list_elem *e = list_begin(&t->mmap_list);
-
+	printf("munmap 1\n");
 	//mmap_list 순회
 	while(e != list_end(&t->mmap_list))
 	{
+		printf("munmap 2\n");
 		struct mmap_file *m_file = list_entry(e, struct mmap_file, elem);
 		next = list_next(e);	
 		//mmap_list내에서 mapping에 해당하는 mapid를 갖는 모든 vm_entry을 해제
@@ -497,10 +496,10 @@ void munmap(int mapping)
 			free(m_file);
 			if(mapping != CLOSE_ALL)
 				break;
-
 		}
 		e = next;
 	}
+	printf("munmap 3\n");
 
 }
 
@@ -511,6 +510,7 @@ void do_munmap(struct mmap_file* mmap_file)
 	struct list_elem *e = list_begin(&mmap_file->vme_list);
 	struct file *f = mmap_file->file;
 	//vme list 순회
+	
 	while(e != list_end(&mmap_file->vme_list))
 	{
 		struct vm_entry *vme = list_entry(e, struct vm_entry, mmap_elem);
