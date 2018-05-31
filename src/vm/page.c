@@ -63,9 +63,6 @@ static void vm_destroy_func(struct hash_elem *e, void *aux)
    free(vme); 
 }
 
-
-
-
 //insert entry
 bool insert_vme(struct hash *vm, struct vm_entry *vme)
 {
@@ -98,20 +95,20 @@ struct vm_entry *find_vme(void *vaddr)
 {
 	struct hash_elem *h_elem;
 	struct vm_entry vme;
-
+	
 	// vaddr의 페이지 번호를 얻음
 	vme.vaddr = pg_round_down(vaddr);
 	// hash_elem 구조체 얻음
 	//struct hash_elem *hash_find (struct hash *, struct hash_elem *);
 	h_elem = hash_find(&thread_current()->vm, &vme.elem);
 	
-
 	if(!h_elem){ // 존재하지 않는다면 NULL 리턴
 	//	printf("h_elem ==NULL \n");
+		printf("vm/page.c - find_vme error\n");
 		return NULL;
 	}
+	
 	return hash_entry(h_elem, struct vm_entry, elem);
-
 }
 
 void vm_destroy(struct hash *vm)
@@ -127,8 +124,6 @@ void vm_init(struct hash  *vm)
 //ppt 349p after success allocateing phy-memory, load
 bool load_file(void *kaddr, struct vm_entry *vme)
 {
-
-
 	/*Using file_read_at()*/
 	// file_read_at으로 물리페이지에read_bytes만큼 데이터를 쓰고
 	// file_read_at 여부 반환
