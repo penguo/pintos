@@ -422,7 +422,7 @@ int mmap(int fd, void *addr)
 	struct mmap_file *mf;
 	static int mapid = 0;
 	//TODO error 뜸
-	if (!f || !addr || ((int)addr % 4096 == 0) || (int)addr < 0)
+	if (!f || !addr || ((int)addr % 4096 == 0) || (int)addr < 0x0804800)
 	{
 		return -1;
 	}
@@ -434,29 +434,31 @@ int mmap(int fd, void *addr)
 	// load_segment에서 한 것처럼
 	off_t ofs = 0;
 	uint32_t read_bytes = file_length(rf);
+
 	while (read_bytes > 0)
 	{
-        size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
-        size_t page_zero_bytes = PGSIZE - page_read_bytes;
-		bool res = false;
-		struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
+			size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
+		  size_t page_zero_bytes = PGSIZE - page_read_bytes;
+
+			struct vm_entry *vme = (struct vm_entry *)malloc(sizeof(struct vm_entry));
 		
+			if(!vme)
+				return -1;
+
 		// vme 내용들 초기화;
         vme->type = VM_FILE;
         vme->vaddr = addr;
         vme->writable = true;
-        vme->is_loaded = true;
-		vme->file = rf;
-		vme->offset = ofs;
-		vme->read_bytes = page_read_bytes;
-		vme->zero_bytes = page_zero_bytes;
+        vme->is_loaded = false;
+				vme->file = rf;
+				vme->offset = ofs;
+				vme->read_bytes = page_read_bytes;
+				vme->zero_bytes = page_zero_bytes;
 
         list_push_back(&mf->vme_list, &vme->mmap_elem);
         // hash vm에 삽입
-        res = insert_vme(&thread_current()->vm, vme);
-		if(!res)
-            return -1;
-
+        insert_vme(&thread_current()->vm, vme);
+            
         read_bytes -= page_read_bytes;
         ofs += page_read_bytes;
         addr += PGSIZE;
@@ -481,11 +483,9 @@ void munmap(int mapid)
 		if(m->mapid == mapid)
 		{
 			do_munmap(m);
+			list_remove(&m->elem);
+			free(m);
 		}
-//		else if(mapid == CLOSE_ALL)
-//		{
-//			do_munmap(m);
-//		}
 		e = next;
 	}
 
@@ -494,11 +494,13 @@ void munmap(int mapid)
 void do_munmap(struct mmap_file* mmap_file)
 {
 	struct thread *t = thread_current();
-	struct vm_entry *vme_next;
-	struct vm_entry *vme = list_begin(&mmap_file->vme_list);
+	struct list_elem *vme_next;
+	struct list_elem *e = list_begin(&mmap_file->vme_list);
 	//vme list 순회
-	while(vme != list_end(&mmap_file->vme_list))
+	while(e != list_end(&mmap_file->vme_list))
 	{
+		struct vm_entry *vme = list_entry(e, struct vm_entry, mmap_elem);
+
 		//vm_entry가 물리 페이지와 load되어 있다면
 		if(vme->is_loaded)
 		{
@@ -511,12 +513,18 @@ void do_munmap(struct mmap_file* mmap_file)
 				file_write_at(vme->file,vme->vaddr,vme->read_bytes, vme->offset);
 				lock_release(&filesys_lock);
 			}
-			//TODO pagedir_get_page(t->pagedir, vme->vaddr); 페이지 할당 해제해줘야 하는데..
+	
+	// pagedir_get_page(t->pagedir, vme->vaddr);
+		palloc_free_page(pagedir_get_page(t->pagedir, vme->vaddr));
 		//page clear
 		pagedir_clear_page(t->pagedir, vme->vaddr);
-		//mmap_list에서 제거
-		list_remove(&mmap_file->elem);
-		//file close 처리
+	
+	
+	//mmap_list에서 제거
+		list_remove(&vme->mmap_elem);
+		delete_vme(&t->vm, vme);
+	
+	//file close 처리
 		if(mmap_file->mapid != 0)
 		{
 			if(mmap_file->file)
@@ -529,8 +537,7 @@ void do_munmap(struct mmap_file* mmap_file)
 		//vme와 mmap을 할당 해제
 		free(vme);
 		free(mmap_file);
-
-		}
-		vme = vme_next;
+	}
+		e = vme_next;
 	}
 }

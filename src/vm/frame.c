@@ -8,7 +8,4 @@
 #include "vm/frame.h"
 #include "vm/page.h"
 
-bool pagedir_is_dirty (uint32_t *pd, const void *vpage){
-	return false;
-}
 
