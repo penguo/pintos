@@ -422,7 +422,7 @@ int mmap(int fd, void *addr)
 	struct mmap_file *mf;
 	static int mapid = 0;
 	//TODO error 뜸
-	if (!f || !addr || ((int)addr % 4096 == 0) || (int)addr < 0x0804800)
+	if (!f || !is_user_vaddr(addr) || ((int)addr % 4096 == 0) || addr < 0x08048000 || ((uint32_t) addr % PGSIZE) != 0)
 	{
 		return -1;
 	}
