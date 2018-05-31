@@ -359,6 +359,7 @@ void process_exit(void)
   int i;
 
   //file_close시 file_allow_write가 호출됨
+  lock_acquire(&filesys_lock);
   if (cur->exec_file)
   {
     file_close(cur->exec_file);
@@ -369,7 +370,8 @@ void process_exit(void)
   {
     process_close_file(i);
   }
-
+  lock_release(&filesys_lock);
+  
   //파일 디스크립터 테이블 메모리 해제
   free(cur->fdt);
 
