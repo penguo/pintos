@@ -155,6 +155,7 @@ struct thread
 
   // mmap list
   struct list mmap_list;
+  int mapid;
 };
 
 //실행중인 thread sleep
