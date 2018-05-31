@@ -8,7 +8,7 @@
 #include "userprog/process.h"
 #include "filesys/file.h"
 #include "devices/input.h"
-
+#include "threads/malloc.h"
 
 #include "vm/page.h"
 #include "userprog/pagedir.h"
@@ -34,6 +34,7 @@ unsigned tell(int fd);
 void close(int fd);
 int mmap(int fd, void *addr);
 void munmap(int mapid);
+void do_munmap(struct mmap_file *mmap_file);
 
 void syscall_init(void)
 {
@@ -421,6 +422,7 @@ int mmap(int fd, void *addr)
 	struct mmap_file *m_file;
 	struct file *old_f = process_get_file(fd);
 	struct file *file;
+	int mapid;
 	off_t ofs = 0;
 	//TODO error 뜸
 	if (!old_f || !is_user_vaddr(addr) || ((int)addr % PGSIZE != 0) || addr < 0x08048000)
@@ -434,7 +436,9 @@ int mmap(int fd, void *addr)
 
 	//mmap 구조체 초기화
 	list_init(&m_file->vme_list);
-	m_file->mapid = thread_current()->mapid++;
+	thread_current()->mapid++;
+	mapid = thread_current()->mapid;
+	m_file->mapid = mapid;
 	m_file->file = file;
 
 	
@@ -451,11 +455,11 @@ int mmap(int fd, void *addr)
 			return -1;
 
 		// vme 초기화;
-        vme->type = VM_FILE;
-        vme->vaddr = addr;
-        vme->writable = true;
-        vme->is_loaded = false;
-		vme->file = new_file;
+    vme->type = VM_FILE;
+    vme->vaddr = addr;
+    vme->writable = true;
+    vme->is_loaded = false;
+		vme->file = file;
 		vme->offset = ofs;
 		vme->read_bytes = page_read_bytes;
 		vme->zero_bytes = page_zero_bytes;
@@ -481,10 +485,8 @@ void munmap(int mapping)
 	//mmap_list 순회
 	while(e != list_end(&t->mmap_list))
 	{
-		next = list_next(e);
-
 		struct mmap_file *m_file = list_entry(e, struct mmap_file, elem);
-	
+		next = list_next(e);	
 		//mmap_list내에서 mapping에 해당하는 mapid를 갖는 모든 vm_entry을 해제
 		//인자로 넘겨진 mapping값이 CLOSE_ALL인경우 모든 파일매핑을 제거
 		//매핑 제거 시 do_munmap()함수호출
@@ -507,7 +509,7 @@ void do_munmap(struct mmap_file* mmap_file)
 	struct thread *t = thread_current();
 	struct list_elem *next;
 	struct list_elem *e = list_begin(&mmap_file->vme_list);
-
+	struct file *f = mmap_file->file;
 	//vme list 순회
 	while(e != list_end(&mmap_file->vme_list))
 	{
@@ -530,7 +532,8 @@ void do_munmap(struct mmap_file* mmap_file)
 		palloc_free_page(pagedir_get_page(t->pagedir, vme->vaddr));
 		//page clear
 		pagedir_clear_page(t->pagedir, vme->vaddr);
-	
+		
+		}
 	
 	//mmap_list에서 제거
 		list_remove(&vme->mmap_elem);
@@ -541,11 +544,11 @@ void do_munmap(struct mmap_file* mmap_file)
 		e = next;
 	}
 	//file close 처리
-	if(mmap_file->file)
+/*	if(f)
 	{
 		lock_acquire(&filesys_lock);
-		file_close(mmap_file->file);
+		file_close(f);
 		lock_release(&filesys_lock);
 
-	}
+	}*/
 }
