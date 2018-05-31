@@ -209,7 +209,6 @@ void lock_acquire(struct lock *lock)
    
     //priority donation 수행
   	donate_priority();
-	
 	}
 
   sema_down(&lock->semaphore);

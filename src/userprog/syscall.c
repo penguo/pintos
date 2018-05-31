@@ -146,13 +146,8 @@ int filesize(int fd)
 
 int read(int fd, void *buffer, unsigned size)
 {
-
 	//파일 디스크립터를 이용하여 파일 객체 검색
 	int i;
-
-	//파일 디스크립터가 1인 경우
-	if (fd == 1)
-		return -1;
 
 	//파일 디스크립터가 0인 경우
 	if (fd == 0)
@@ -195,13 +190,8 @@ int read(int fd, void *buffer, unsigned size)
 
 int write(int fd, void *buffer, unsigned size)
 {
-
 	struct file *f = process_get_file(fd);
 	int bytes;
-
-	//파일 디스크립터가 0인 경우
-	if (fd == 0)
-		return -1;
 
 	//파일 디스크립터가 1인 경우
 	if (fd == 1)
