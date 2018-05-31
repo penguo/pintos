@@ -61,13 +61,19 @@ void exit(int status)
 bool create(const char *file, unsigned initial_size)
 {
 	//파일 생성
-	return filesys_create(file, initial_size);
+	lock_acquire(&filesys_lock);
+	bool success = filesys_create(file, initial_size);
+	lock_release(&filesys_lock);
+	return success;
 }
 
 bool remove(const char *file)
 {
 	//파일 제거
-	return filesys_remove(file);
+	lock_acquire(&filesys_lock);
+	bool success = filesys_remove(file);
+	lock_release(&filesys_lock);
+	return success;
 }
 
 //자식 프로세스를 생성하고 프로그램을 실행시키는 시스템 콜
@@ -102,6 +108,8 @@ int wait(tid_t pid)
 
 int open(const char *file)
 {
+	lock_acquire(&filesys_lock);
+
 	//파일 open
 	struct file *f = filesys_open(file);
 	int fd;
@@ -113,18 +121,24 @@ int open(const char *file)
 	//해당 파일 객체에 파일 디스크립터 부여
 	fd = process_add_file(f);
 
+	lock_release(&filesys_lock);
+
 	//파일 디스크립터 리턴
 	return fd;
 }
 
 int filesize(int fd)
 {
+	lock_acquire(&filesys_lock);
 	struct file *f = process_get_file(fd);
-
 	if (!f)
+	{
+		lock_release(&filesys_lock);
 		return -1;
-
-	return file_length(f);
+	}
+	int size = file_length(f);
+	lock_release(&filesys_lock);
+	return size;
 }
 
 int read(int fd, void *buffer, unsigned size)
@@ -220,30 +234,40 @@ int write(int fd, void *buffer, unsigned size)
 
 void seek(int fd, unsigned position)
 {
+	lock_acquire(&filesys_lock);
 	struct file *f = process_get_file(fd);
 
 	if (f == NULL)
+	{
+		lock_release(&filesys_lock);
 		return;
+	}
 	//해당 열린 파일의 위치를 position만큼 이동
 	file_seek(f, position);
+	lock_release(&filesys_lock);
 }
 
-unsigned
-tell(int fd)
+unsigned tell (int fd)
 {
+	lock_acquire(&filesys_lock);
 	struct file *f = process_get_file(fd);
-
-	if (f == NULL)
-		return;
-	//해당 열린 파일의 위치를 반환
-	return file_tell(f);
+	if(!f)
+	{
+		lock_release(&filesys_lock);
+		return -1;
+	}
+	off_t offset = file_tell(f);
+	lock_release(&filesys_lock);
+	return offset;
 }
 
 void close(int fd)
 {
 	//해당 파일 디스크립터에 해당하는 파일을 닫고
 	//파일 디스크립터 엔트리 초기화
+	lock_acquire(&filesys_lock);
 	process_close_file(fd);
+	lock_release(&filesys_lock);
 }
 
 static void
