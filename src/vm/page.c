@@ -133,7 +133,6 @@ bool load_file(void *kaddr, struct vm_entry *vme)
 		}
 		lock_release(&filesys_lock);
 		memset(kaddr+vme->read_bytes,0,vme->zero_bytes);
-	
 	}
 	
 	/* zero_bytes만큼 남는 부분을‘0’으로 패딩*/

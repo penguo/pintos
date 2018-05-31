@@ -213,9 +213,7 @@ int process_add_file(struct file *f)
 
 //프로세스의 파일 디스크립터 테이블을 검색하여
 //파일 객체의 주소를 리턴하는 함수
-struct
-    file *
-    process_get_file(int fd)
+struct file *process_get_file(int fd)
 {
   struct thread *t = thread_current();
 

@@ -133,6 +133,7 @@ int read(int fd, void *buffer, unsigned size)
 	//파일 디스크립터를 이용하여 파일 객체 검색
 	struct file *f = process_get_file(fd);
 	int i;
+	int bytes;
 
 	//파일 디스크립터가 1인 경우
 	if (fd == 1)
@@ -158,20 +159,20 @@ int read(int fd, void *buffer, unsigned size)
 
 	if (f == NULL)
 	{
-		//널일 경우 lock 해제 후 리턴 0
+		//널일 경우 lock 해제 후 리턴 -1
 		lock_release(&filesys_lock);
-		return 0;
+		return -1;
 	}
 	else
 	{
 		//파일 read
-		size = file_read(f, buffer, size);
+		bytes = file_read(f, buffer, size);
 
 		//lock 해제
 		lock_release(&filesys_lock);
 
 		//읽은 바이트 수 리턴
-		return size;
+		return bytes;
 	}
 }
 
@@ -179,6 +180,7 @@ int write(int fd, void *buffer, unsigned size)
 {
 
 	struct file *f = process_get_file(fd);
+	int bytes;
 
 	//파일 디스크립터가 0인 경우
 	if (fd == 0)
@@ -199,20 +201,20 @@ int write(int fd, void *buffer, unsigned size)
 
 	if (f == NULL)
 	{
-		//널일 경우 lock 해제 후 리턴 0
+		//널일 경우 lock 해제 후 리턴 -1
 		lock_release(&filesys_lock);
-		return 0;
+		return -1;
 	}
 	else
 	{
 		//파일 write
-		size = file_write(f, buffer, size);
+		bytes = file_write(f, buffer, size);
 
 		//락 해제
 		lock_release(&filesys_lock);
 
 		//파일에 쓴 바이트 수 리턴
-		return size;
+		return bytes;
 	}
 }
 
@@ -478,11 +480,13 @@ void munmap(int mapping)
 {
 	struct thread *t = thread_current();
 	struct list_elem *e = list_begin(&t->mmap_list);
-	//mmap_list 순회
+	struct list_elem *next_elem;
+
+	//mmap_list에서 해제할 mmap_file 검색
 	while (e != list_end(&t->mmap_list))
 	{
 		struct mmap_file *m_file = list_entry(e, struct mmap_file, elem);
-		
+		next_elem = list_next(e);
 		//mmap_list내에서 mapping에 해당하는 mapid를 갖는 모든 vm_entry을 해제
 		//인자로 넘겨진 mapping값이 CLOSE_ALL인경우 모든 파일매핑을 제거
 		//매핑 제거 시 do_munmap()함수호출
@@ -494,20 +498,22 @@ void munmap(int mapping)
 			if (mapping != CLOSE_ALL)
 				break;
 		}
-		e = list_next(e);
+		e = next_elem;
 	}
 }
 
+// 매핑 제거
 void do_munmap(struct mmap_file *mmap_file)
 {
 	struct thread *t = thread_current();
-	struct list_elem *next;
+	struct list_elem *next_elem;
 	struct list_elem *e = list_begin(&mmap_file->vme_list);
 	struct file *f = mmap_file->file;
 	//vme list 순회
 
 	while (e != list_end(&mmap_file->vme_list))
 	{
+		next_elem = list_next(e);
 		struct vm_entry *vme = list_entry(e, struct vm_entry, mmap_elem);
 
 		//vm_entry가 물리 페이지와 load되어 있다면
@@ -535,7 +541,7 @@ void do_munmap(struct mmap_file *mmap_file)
 
 		free(vme);
 
-		e = next;
+		e = next_elem;
 	}
 	//file close 처리
 	/*	if(f)
