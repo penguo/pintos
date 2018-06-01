@@ -439,7 +439,7 @@ int mmap(int fd, void *addr)
 
 	old_f = process_get_file(fd);
 
-	if ((old_f == NULL) || (((int)addr % PGSIZE) != 0) || (addr == 0) || (file_length(old_f) == 0))
+	if ((((int)addr % PGSIZE) != 0) || (addr == 0))
 		return -1;
 
 	//check_address
@@ -447,6 +447,10 @@ int mmap(int fd, void *addr)
 		return -1;
 
 	file = file_reopen(old_f);
+	if ((file == NULL) || file_length(file) == 0)
+	{
+		return -1;
+	}
 	//mmap구조체 생성
 	m_file = (struct mmap_file *)malloc(sizeof(struct mmap_file));
 
