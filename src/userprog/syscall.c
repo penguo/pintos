@@ -113,7 +113,7 @@ int open(const char *file)
 	//파일 open
 	struct file *f = filesys_open(file);
 	int fd;
-
+	
 	//해당 파일이 존재하지 않을 시 -1 리턴
 	if (f == NULL)
 	{
@@ -190,8 +190,6 @@ int read(int fd, void *buffer, unsigned size)
 
 int write(int fd, void *buffer, unsigned size)
 {
-	struct file *f = process_get_file(fd);
-	int bytes;
 
 	//파일 디스크립터가 1인 경우
 	if (fd == 1)
@@ -205,6 +203,8 @@ int write(int fd, void *buffer, unsigned size)
 
 	//lock 사용하여 동시 접근 방지
 	lock_acquire(&filesys_lock);
+	struct file *f = process_get_file(fd);
+	int bytes;
 
 	if (f == NULL)
 	{
@@ -433,41 +433,47 @@ void check_valid_string(const void *str, void *esp)
 int mmap(int fd, void *addr)
 {
 	struct mmap_file *m_file;
-	struct file *old_f, *file;
-	int mapid;
+	struct file *f, *rf;
 	off_t ofs = 0;
+	static int map_id = 0;
 
-	old_f = process_get_file(fd);
+	f = process_get_file(fd);
 
-	if ((((int)addr % PGSIZE) != 0) || (addr == 0))
-		return -1;
+	if (f == NULL || !is_user_vaddr(addr) || addr <= 0 || (int)addr % PGSIZE != 0)
+	{
+		return -1; // 이상한 인자
+	}
 
-	//check_address
-	if (!is_user_vaddr(addr) || (addr < (void *)0x08048000))
-		return -1;
+	rf = file_reopen(f);
 
-	file = file_reopen(old_f);
-	if ((file == NULL) || file_length(file) == 0)
+	if (!rf || file_length(rf) == 0)
 	{
 		return -1;
 	}
+
 	//mmap구조체 생성
 	m_file = (struct mmap_file *)malloc(sizeof(struct mmap_file));
-
+	if (m_file == NULL)
+	{
+		return -1;
+	}
 	//mmap 구조체 초기화
 	list_init(&m_file->vme_list);
-	thread_current()->mapid++;
-	mapid = thread_current()->mapid;
-	m_file->mapid = mapid;
-	m_file->file = file;
+	m_file->mapid = ++map_id;
+	m_file->file = rf;
 
-	uint32_t read_bytes = file_length(file);
+	uint32_t read_bytes = file_length(rf);
 
 	while (read_bytes > 0)
 	{
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
+		// 이미 존재한다면 에러
+		if (find_vme(addr))
+		{
+			return -1;
+		}
 		struct vm_entry *vme = malloc(sizeof(struct vm_entry));
 
 		if (!vme)
@@ -478,7 +484,7 @@ int mmap(int fd, void *addr)
 		vme->vaddr = addr;
 		vme->writable = true;
 		vme->is_loaded = false;
-		vme->file = file;
+		vme->file = rf;
 		vme->offset = ofs;
 		vme->read_bytes = page_read_bytes;
 		vme->zero_bytes = page_zero_bytes;
@@ -506,6 +512,7 @@ void munmap(int mapping)
 	{
 		struct mmap_file *m_file = list_entry(e, struct mmap_file, elem);
 		next_elem = list_next(e);
+
 		//mmap_list내에서 mapping에 해당하는 mapid를 갖는 모든 vm_entry을 해제
 		//인자로 넘겨진 mapping값이 CLOSE_ALL인경우 모든 파일매핑을 제거
 		//매핑 제거 시 do_munmap()함수호출
