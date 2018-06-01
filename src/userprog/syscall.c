@@ -385,7 +385,19 @@ struct vm_entry *check_address(void *addr, void *esp)
 	if (addr < (void *)0x08048000 || addr >= (void *)0xc0000000)
 		exit(-1);
 
+	bool loaded = false;
 	struct vm_entry *vme = find_vme(addr);
+	
+	if(vme)
+	{
+	 vme->pinned = true;
+	 handle_mm_fault(vme);
+	 loaded = vme->is_loaded;
+	}
+	
+	if(!loaded)
+		exit(-1);
+	
 	return vme;
 }
 
@@ -570,11 +582,11 @@ void do_munmap(struct mmap_file *mmap_file)
 		e = next_elem;
 	}
 	//file close 처리
-	/*	if(f)
+	if(f)
 	{
 		lock_acquire(&filesys_lock);
 		file_close(f);
 		lock_release(&filesys_lock);
 
-	}*/
+	}
 }
