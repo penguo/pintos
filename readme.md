@@ -1,1 +1,1 @@
-# yerimu
+# userprog pass상태
