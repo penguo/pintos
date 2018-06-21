@@ -20,8 +20,8 @@ struct buffer_head
 
 void bc_init(void);
 void bc_term(void);
-bool bc_read(block_sector_t sector_idx, void *buffer, off_t buffer_ofs, int chunk_size, int sector_ofs);
-bool bc_write (block_sector_t sector_idx, void *buffer, off_t buffer_ofs, int chunk_size, int sector_ofs);
+bool bc_read(block_sector_t sector_i, void *buffer, off_t buffer_ofs, int chunk_size, int sector_ofs);
+bool bc_write (block_sector_t sector_i, void *buffer, off_t buffer_ofs, int chunk_size, int sector_ofs);
 struct buffer_head* bc_lookup(block_sector_t sector);
 struct buffer_head* bc_select_victim(void);
 
