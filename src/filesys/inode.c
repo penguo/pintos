@@ -228,7 +228,7 @@ inode_read_at (struct inode *inode, void *buffer_, off_t size, off_t offset)
           //block_read (fs_device, sector_idx, buffer + bytes_read);
 
 					//buffer cache read로 수정
-					bc_read(sector_idx, (void*)buffer, bytes_read, chunk_size, sector_ofs);
+					bc_read(sector_idx, buffer, bytes_read, chunk_size, sector_ofs);
         }
       else 
 
@@ -293,7 +293,7 @@ inode_write_at (struct inode *inode, const void *buffer_, off_t size,
           //block_write (fs_device, sector_idx, buffer + bytes_written);
 
 					//buffer cache write로 수정
-					bc_write(sector_idx,(void*) buffer, bytes_written, chunk_size, sector_ofs);
+					bc_write(sector_idx, buffer, bytes_written, chunk_size, sector_ofs);
         }
       else 
         {

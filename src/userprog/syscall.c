@@ -125,8 +125,8 @@ int read(int fd, void *buffer, unsigned size)
 	int i;
 
 	//파일 디스크립터가 1인 경우
-	if (fd == 1)
-		return -1;
+//	if (fd == 1)
+//		return -1;
 
 	//파일 디스크립터가 0인 경우
 	if (fd == 0)
@@ -171,8 +171,8 @@ int write(int fd, void *buffer, unsigned size)
 	struct file *f = process_get_file(fd);
 
 	//파일 디스크립터가 0인 경우
-	if (fd == 0)
-		return -1;
+//	if (fd == 0)
+//		return -1;
 
 	//파일 디스크립터가 1인 경우
 	if (fd == 1)
