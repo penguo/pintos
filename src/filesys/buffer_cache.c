@@ -187,7 +187,7 @@ struct buffer_head* bc_select_victim(void)
 
    int i;
    for(i = 0; i < BUFFER_CACHE_ENTRY_NB; i++){
-     if(buffer_head[i]->used && buffer_head[i].sector == sector){
+     if(buffer_head[i].used && buffer_head[i].sector == sector){
        return &buffer_head[i];
      }
 
