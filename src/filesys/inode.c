@@ -306,6 +306,7 @@ off_t inode_read_at(struct inode *inode, void *buffer_, off_t size, off_t offset
     bytes_read += chunk_size;
   }
   free(bounce);
+  free(disk_inode);
 
   return bytes_read;
 }
@@ -328,7 +329,10 @@ off_t inode_write_at(struct inode *inode, const void *buffer_, off_t size, off_t
   get_disk_inode(inode, disk_inode);
 
   if (inode->deny_write_cnt)
+  {
+    free(disk_inode);
     return 0;
+  }
 
   //get lock
   lock_acquire(&inode->extend_lock);
@@ -360,7 +364,7 @@ off_t inode_write_at(struct inode *inode, const void *buffer_, off_t size, off_t
     int sector_ofs = offset % BLOCK_SECTOR_SIZE;
 
     /* Bytes left in inode, bytes left in sector, lesser of the two. */
-    off_t inode_left = inode_length(inode) - offset;
+    off_t inode_left = disk_inode->length - offset;
     int sector_left = BLOCK_SECTOR_SIZE - sector_ofs;
     int min_left = inode_left < sector_left ? inode_left : sector_left;
 
