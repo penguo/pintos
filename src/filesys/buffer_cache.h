@@ -11,7 +11,7 @@
 struct buffer_head
 {
   bool dirty;	
-  bool valid;			/* buffer cache entry의 사용 여부 */
+  bool used;			/* buffer cache entry의 사용 여부 */
   block_sector_t sector;	/* buffer cache에 저장된 disk sector */
   bool clock_bit;		/* clock algorithm을 위한 필드 */
   struct lock lock;
