@@ -1,6 +1,10 @@
 #include "filesys/buffer_cache.h"
+#include "filesys/inode.h"
+#include "filesys/filesys.h"
 #include "threads/palloc.h"
+#include <stdio.h>
 #include <string.h>
+#include "threads/malloc.h"
 #include <debug.h>
 
 //buffer cache entry의 개수 32kb = (64*512byte)
@@ -18,15 +22,27 @@ static struct buffer_head *clock_hand;
 void bc_init (void){
 	int i;
 	struct buffer_head *head;
-	void *cache = p_buffer_cache;
+
+	void *cache;
+	p_buffer_cache = malloc(BLOCK_SECTOR_SIZE * BUFFER_CACHE_ENTRY_NB);
+	//buffer cache 할당
+
+	if(!p_buffer_cache){
+		printf("Memory Alocation Fail!\n");
+		return;
+	}
+	else
+		cache = p_buffer_cache;
+	
 	//buffer_head init
 	for(i = 0; i<BUFFER_CACHE_ENTRY_NB; i++){
 		head = buffer_head+i;
 		//cache size
-		cache += BLOCK_SECTOR_SIZE;
 		memset(head, 0, sizeof(buffer_head));
 		lock_init(&head->l);
 		head->buffer = cache;
+		cache += BLOCK_SECTOR_SIZE;	
+		//printf("%x\n",cache);
 	}
 	//clock_hand의 초기값은 head
 	clock_hand = buffer_head;
@@ -91,7 +107,7 @@ void bc_term(void){
 }
 
 struct buffer_head* bc_select_victim(void){
-	while(1){
+/*	while(1){
 		for(; clock_hand != buffer_head + BUFFER_CACHE_ENTRY_NB; clock_hand++){
 			lock_acquire(&clock_hand->l);
 			//사용중이 아니거나 이미 참조한 경우 victim
@@ -105,7 +121,8 @@ struct buffer_head* bc_select_victim(void){
 		//끝에 도달했을 때 처음으로 돌아가 앞부분 검사
 		clock_hand = buffer_head;
 	}
-return NULL;
+return NULL;*/
+	return clock_hand;
 }
 
 //block 캐싱 여부 검사
