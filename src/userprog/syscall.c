@@ -26,6 +26,13 @@ void seek(int fd, unsigned position);
 unsigned tell(int fd);
 void close(int fd);
 
+bool sys_chdir(const char *dir);
+bool sys_mkdir(const char *dir);
+bool sys_readdir(int fd, char *name);
+int sys_inumber(int fd);
+
+
+
 void syscall_init(void)
 {
 	intr_register_int(0x30, 3, INTR_ON, syscall_handler, "syscall");
@@ -234,6 +241,70 @@ void close(int fd)
 	process_close_file(fd);
 }
 
+
+
+bool sys_chdir(const char *dir)
+{
+  // 프로세스의 현재 작업 디렉터리를 DIR 경로로 변경(절대/상대)            
+  struct file *p_file = filesys_open(dir);
+  if(p_file == NULL)
+    return false;
+
+	// 1. DIR 경로의 디렉터리를 open 
+  struct inode *p_inode = inode_reopen(file_get_inode(p_file));
+  struct dir *p_cur_dir = dir_open(p_inode);
+
+  file_close(p_file);
+  if(p_cur_dir == NULL)
+    return false;
+
+	// 2. thread 자료구조의 current_dir을 dir 디렉터리로 설정
+  dir_close(thread_current()->cur_dir);
+ 
+	/* 스레드의현재작업디렉터리를변경*/
+	thread_current()->cur_dir = p_cur_dir;
+ 
+  return true;
+}
+
+bool sys_mkdir(const char* dir)
+{
+	return filesys_create_dir(dir);
+}
+
+bool sys_readdir(int fd, char *name)
+{
+  lock_acquire(&filesys_lock);
+  struct file *p_file = process_get_file(fd);
+  if(p_file == NULL && !inode_is_dir(file_get_inode(p_file)))
+  {
+    lock_release(&filesys_lock);
+    return false; 
+  }
+  
+  struct dir *p_dir = (struct dir*)p_file;
+  
+  bool success = false;
+  do
+  {
+    success = dir_readdir(p_dir, name);
+  }
+  while(success && (strcmp(name,".") == 0 || strcmp(name,"..") == 0));
+
+  lock_release(&filesys_lock);
+  return success;
+}
+
+int sys_inumber(int fd)
+{
+  struct file *p_file = process_get_file(fd);
+  if(p_file != NULL)
+    return (uint32_t)inode_get_inumber(file_get_inode(p_file));
+  else
+    return -1;
+}
+
+
 static void
 syscall_handler(struct intr_frame *f)
 {
@@ -241,6 +312,7 @@ syscall_handler(struct intr_frame *f)
 	int *h_esp = f->esp;
 	int syscall_num = *h_esp;
 	int arg[5];
+
 	//	printf("\nsyscall number : %d\n", syscall_num);
 
 	switch (syscall_num)
@@ -316,8 +388,32 @@ syscall_handler(struct intr_frame *f)
 		close(arg[0]);
 		break;
 
+	case SYS_CHDIR:
+		get_argument(h_esp , arg , 1);
+		check_address(arg[0]);
+		f -> eax = sys_chdir((const char *)arg[0]);
+		break;
+	
+	case SYS_MKDIR:
+				get_argument(h_esp , arg , 1);
+			check_address(arg[0]);
+				f -> eax = sys_mkdir((const char *)arg[0]);
+				break;
+
+	case SYS_READDIR:
+				get_argument(h_esp , arg , 2);
+				check_address(arg[1]);
+				f -> eax = sys_readdir(arg[0], (char *)arg[1]);
+				break;
+
+	case SYS_INUMBER:
+				get_argument(h_esp , arg , 1);
+				f -> eax = sys_inumber(arg[0]);
+				break;
+
 	default:
-		printf("default\n");
+	//	printf("default\n");
+		break;
 	}
 }
 

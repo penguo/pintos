@@ -81,6 +81,8 @@ static bool register_sector(struct inode_disk *inode_disk, block_sector_t new_se
 static block_sector_t byte_to_sector(const struct inode_disk *inode_disk, off_t pos);
 bool inode_update_file_length(struct inode_disk *, off_t, off_t);
 static void free_inode_sectors(struct inode_disk *inode_disk);
+bool inode_is_dir(const struct inode* inode);
+
 
 /* List of open inodes, so that opening a single inode twice
    returns the same `struct inode'. */
@@ -97,7 +99,7 @@ void inode_init(void)
    device.
    Returns true if successful.
    Returns false if memory or disk allocation fails. */
-bool inode_create(block_sector_t sector, off_t length)
+bool inode_create(block_sector_t sector, off_t length, uint32_t is_dir)
 {
   struct inode_disk *disk_inode = NULL;
   bool success = false;
@@ -114,6 +116,7 @@ bool inode_create(block_sector_t sector, off_t length)
     //    size_t sectors = bytes_to_sectors (length);
     disk_inode->length = length;
     disk_inode->magic = INODE_MAGIC;
+		disk_inode->is_dir = is_dir;
     /*  if (free_map_allocate (sectors, &disk_inode->start)) 
         {
           block_write (fs_device, sector, disk_inode);
@@ -720,3 +723,28 @@ static void free_inode_sectors(struct inode_disk *inode_disk)
     i++;
   }
 }
+
+
+
+bool inode_is_dir(const struct inode *inode)
+{
+  bool result;
+  struct inode_disk *disk_inode = malloc(sizeof(struct inode_disk));
+  if(disk_inode == NULL)
+    return 0;
+
+  bc_read(inode->sector, (void *)disk_inode, 0, BLOCK_SECTOR_SIZE, 0);
+
+  result = disk_inode->is_dir;
+
+  free(disk_inode);
+
+  return result;
+}
+
+
+bool inode_is_removed(const struct inode *inode)
+{
+  return inode->removed;
+}
+

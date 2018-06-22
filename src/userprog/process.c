@@ -326,7 +326,9 @@ process_exit (void)
 	
 	//파일 디스크립터 테이블 메모리 해제
 	free(cur->fdt);
- 	
+ 
+	dir_close(cur->cur_dir);
+	
 	pd = cur->pagedir;
   if (pd != NULL) 
     {

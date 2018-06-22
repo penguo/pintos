@@ -101,6 +101,7 @@ thread_init (void)
   init_thread (initial_thread, "main", PRI_DEFAULT);
   initial_thread->status = THREAD_RUNNING;
   initial_thread->tid = allocate_tid ();
+	initial_thread->cur_dir = NULL;
 
 }
 
@@ -188,6 +189,11 @@ thread_create (const char *name, int priority,
   /* Initialize thread. */
   init_thread (t, name, priority);
   tid = t->tid = allocate_tid ();
+
+	if(thread_current()->cur_dir != NULL)
+		t->cur_dir = dir_reopen(thread_current()->cur_dir);
+
+
 	
 	//파일 디스크립터 할당
 	t->fdt = malloc(sizeof(struct file *)*MAX_FILE);

@@ -5,6 +5,7 @@
 #include <list.h>
 #include <stdint.h>
 #include "threads/synch.h"
+#include "filesys/directory.h"
 
 /* States in a thread's life cycle. */
 enum thread_status
@@ -134,6 +135,10 @@ struct thread
 		//프로그램 파일을 가리키는 파일 구조체 포인터
 		struct file *exec_file;
 	
+
+
+		struct dir *cur_dir;
+
 	};
 
 /* If false (default), use round-robin scheduler.
